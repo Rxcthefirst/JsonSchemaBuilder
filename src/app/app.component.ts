@@ -1,9 +1,9 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { SchemaEditorComponent } from './components/schema-editor/schema-editor.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [SchemaEditorComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

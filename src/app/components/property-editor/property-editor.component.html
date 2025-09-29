@@ -1,0 +1,306 @@
+<div class="property-editor" [formGroup]="propertyForm" *ngIf="propertyForm">
+  <div class="property-header">
+    <div class="property-basic">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="propertyName">Property Name:</label>
+          <input id="propertyName" type="text" formControlName="name" class="form-control" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="propertyType">Type:</label>
+          <select id="propertyType" formControlName="type" class="form-control">
+            <option *ngFor="let type of propertyTypes" [value]="type">
+              {{ type }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" formControlName="required">
+            Required
+          </label>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="propertyTitle">Title (optional):</label>
+        <input id="propertyTitle" type="text" formControlName="title" class="form-control">
+      </div>
+      
+      <div class="form-group">
+        <label for="propertyDescription">Description (optional):</label>
+        <textarea id="propertyDescription" formControlName="description" class="form-control" rows="2"></textarea>
+      </div>
+    </div>
+    
+    <div class="property-actions">
+      <button type="button" class="btn btn-link" (click)="toggleAdvancedOptions()">
+        {{ showAdvancedOptions ? 'Hide' : 'Show' }} Advanced Options
+      </button>
+    </div>
+  </div>
+
+  <div class="property-advanced" *ngIf="showAdvancedOptions">
+    <!-- Default Value -->
+    <div class="form-group">
+      <label for="defaultValue">Default Value:</label>
+      <input 
+        id="defaultValue" 
+        type="text" 
+        formControlName="defaultValue" 
+        class="form-control"
+        [placeholder]="getDefaultValuePlaceholder()">
+    </div>
+
+    <!-- Enum Values -->
+    <div class="form-group">
+      <label for="enumValues">Enum Values (comma-separated):</label>
+      <input id="enumValues" type="text" formControlName="enumValues" class="form-control" placeholder="value1, value2, value3">
+    </div>
+
+    <!-- String-specific constraints -->
+    <div class="string-constraints" *ngIf="isStringType()">
+      <h4>String Constraints</h4>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="minLength">Min Length:</label>
+          <input id="minLength" type="number" formControlName="minLength" class="form-control" min="0">
+        </div>
+        
+        <div class="form-group">
+          <label for="maxLength">Max Length:</label>
+          <input id="maxLength" type="number" formControlName="maxLength" class="form-control" min="0">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="pattern">Pattern (regex):</label>
+        <input id="pattern" type="text" formControlName="pattern" class="form-control" placeholder="^[a-zA-Z]+$">
+      </div>
+      
+      <div class="form-group">
+        <label for="format">Format:</label>
+        <select id="format" formControlName="format" class="form-control">
+          <option value="">None</option>
+          <option *ngFor="let format of stringFormats" [value]="format">
+            {{ format }}
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Number/Integer-specific constraints -->
+    <div class="number-constraints" *ngIf="isNumberType()">
+      <h4>Number Constraints</h4>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="minimum">Minimum:</label>
+          <input id="minimum" type="number" formControlName="minimum" class="form-control">
+        </div>
+        
+        <div class="form-group">
+          <label for="maximum">Maximum:</label>
+          <input id="maximum" type="number" formControlName="maximum" class="form-control">
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="exclusiveMinimum">Exclusive Minimum:</label>
+          <input id="exclusiveMinimum" type="number" formControlName="exclusiveMinimum" class="form-control">
+        </div>
+        
+        <div class="form-group">
+          <label for="exclusiveMaximum">Exclusive Maximum:</label>
+          <input id="exclusiveMaximum" type="number" formControlName="exclusiveMaximum" class="form-control">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="multipleOf">Multiple Of:</label>
+        <input id="multipleOf" type="number" formControlName="multipleOf" class="form-control" min="0">
+      </div>
+    </div>
+
+
+
+    <!-- Object-specific constraints -->
+    <div class="object-constraints" *ngIf="isObjectType()">
+      <h4>Object Constraints</h4>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="minProperties">Min Properties:</label>
+          <input id="minProperties" type="number" formControlName="minProperties" class="form-control" min="0">
+        </div>
+        
+        <div class="form-group">
+          <label for="maxProperties">Max Properties:</label>
+          <input id="maxProperties" type="number" formControlName="maxProperties" class="form-control" min="0">
+        </div>
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" formControlName="additionalProperties">
+          Allow Additional Properties
+        </label>
+      </div>
+
+      <!-- Object Properties Management -->
+      <div class="object-properties-section">
+        <!-- Nesting depth warning -->
+        <div class="alert alert-warning" *ngIf="shouldSuggestReference() || !canAddNestedProperty()">
+          <small>{{ getNestingWarningMessage() }}</small>
+        </div>
+        
+        <div class="section-header">
+          <h5>Object Properties</h5>
+          <button type="button" 
+                  class="btn btn-sm" 
+                  [class.btn-primary]="canAddNestedProperty()"
+                  [class.btn-secondary]="!canAddNestedProperty()"
+                  [disabled]="!canAddNestedProperty()"
+                  (click)="addObjectProperty()">
+            Add Property
+          </button>
+        </div>
+        
+        <div class="nested-properties" *ngIf="getObjectPropertiesArray().length > 0; else noObjectProperties">
+          <div class="nested-property" *ngFor="let propEntry of getObjectPropertiesArray(); trackBy: trackByPropertyKey">
+            <div class="nested-property-header">
+              <input type="text" 
+                     [value]="propEntry.property.name" 
+                     (input)="updatePropertyName(propEntry.key, $event)"
+                     class="property-name-input"
+                     placeholder="Property name">
+              <select [value]="propEntry.property.type" 
+                      (change)="updatePropertyType(propEntry.key, $event)"
+                      class="property-type-select"
+                      [disabled]="propEntry.property.type === 'object' && !canAddNestedProperty()">
+                <option *ngFor="let type of propertyTypes" [value]="type">
+                  {{ type }}
+                </option>
+              </select>
+              <button type="button" 
+                      class="btn-icon btn-danger" 
+                      (click)="removeObjectProperty(propEntry.key)"
+                      title="Remove property">
+                🗑️
+              </button>
+            </div>
+            
+            <div class="nested-property-details">
+              <input type="text" 
+                     [value]="propEntry.property.title || ''"
+                     (input)="updatePropertyTitle(propEntry.key, $event)"
+                     placeholder="Title (optional)"
+                     class="form-control">
+              <textarea [value]="propEntry.property.description || ''"
+                       (input)="updatePropertyDescription(propEntry.key, $event)"
+                       placeholder="Description (optional)"
+                       class="form-control" rows="2"></textarea>
+              
+              <label class="checkbox-label">
+                <input type="checkbox" 
+                       [checked]="propEntry.property.required || false"
+                       (change)="updatePropertyRequired(propEntry.key, $event)">
+                Required
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <ng-template #noObjectProperties>
+          <div class="no-properties">
+            <p>No properties defined for this object. Add properties to define the object structure.</p>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Array-specific constraints -->
+    <div class="array-constraints" *ngIf="isArrayType()">
+      <h4>Array Constraints</h4>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="minItems">Min Items:</label>
+          <input id="minItems" type="number" formControlName="minItems" class="form-control" min="0">
+        </div>
+        
+        <div class="form-group">
+          <label for="maxItems">Max Items:</label>
+          <input id="maxItems" type="number" formControlName="maxItems" class="form-control" min="0">
+        </div>
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" formControlName="uniqueItems">
+          Unique Items
+        </label>
+      </div>
+
+      <!-- Array Items Schema -->
+      <div class="array-items-section">
+        <div class="section-header">
+          <h5>Array Items Schema</h5>
+          <button type="button" 
+                  class="btn btn-sm btn-primary" 
+                  *ngIf="!property.items" 
+                  (click)="createArrayItems()">
+            Define Items Schema
+          </button>
+          <button type="button" 
+                  class="btn btn-sm btn-danger" 
+                  *ngIf="property.items" 
+                  (click)="removeArrayItems()">
+            Remove Items Schema
+          </button>
+        </div>
+        
+        <div class="array-items-editor" *ngIf="property.items">
+          <p class="help-text">Define the schema for items in this array:</p>
+          <div class="simple-items-editor">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Items Type:</label>
+                <select [value]="property.items.type" 
+                        (change)="updateArrayItemsType($event)"
+                        class="form-control">
+                  <option *ngFor="let type of propertyTypes" [value]="type">
+                    {{ type }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Items Title:</label>
+                <input type="text" 
+                       [value]="property.items.title || ''"
+                       (input)="updateArrayItemsTitle($event)"
+                       placeholder="Title for array items"
+                       class="form-control">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Items Description:</label>
+              <textarea [value]="property.items.description || ''"
+                       (input)="updateArrayItemsDescription($event)"
+                       placeholder="Description for array items"
+                       class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        
+        <div class="no-items-schema" *ngIf="!property.items">
+          <p>No items schema defined. The array can contain any type of items.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

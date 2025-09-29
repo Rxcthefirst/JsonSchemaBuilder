@@ -1,0 +1,115 @@
+<div class="schema-preview" *ngIf="schema">
+  <div class="preview-header">
+    <h3>Schema Preview</h3>
+    <div class="preview-actions">
+      <button type="button" 
+              class="btn btn-sm btn-outline" 
+              (click)="toggleView()"
+              *ngIf="!isInteractiveMode">
+        {{ showRawJson ? 'Show Summary' : 'Show JSON' }}
+      </button>
+      <button type="button" 
+              class="btn btn-sm" 
+              [class.btn-primary]="isInteractiveMode"
+              [class.btn-outline]="!isInteractiveMode"
+              (click)="toggleInteractiveMode()"
+              *ngIf="enableInteractiveMode"
+              title="Toggle Interactive Editor">
+        {{ isInteractiveMode ? '🎯 View Mode' : '✏️ Edit Mode' }}
+      </button>
+      <button type="button" class="btn btn-sm btn-outline" (click)="copyToClipboard()">
+        Copy JSON
+      </button>
+      <button type="button" class="btn btn-sm btn-primary" (click)="downloadSchema()">
+        Download
+      </button>
+    </div>
+  </div>
+
+  <div class="preview-content">
+    <!-- Interactive Monaco Editor Mode -->
+    <div class="interactive-editor" *ngIf="isInteractiveMode">
+      <div class="editor-info">
+        <p class="editor-description">
+          <strong>Interactive Mode:</strong> Edit the JSON Schema directly. Changes are synced automatically.
+        </p>
+      </div>
+      <app-monaco-editor
+        [value]="formattedJson"
+        [options]="monacoOptions"
+        [height]="'500px'"
+        [showToolbar]="true"
+        (valueChange)="onMonacoValueChange($event)"
+        (editorReady)="onMonacoReady($event)"
+        (validationChange)="onValidationChange($event)">
+      </app-monaco-editor>
+    </div>
+
+    <!-- Traditional Summary View -->
+    <div class="schema-summary" *ngIf="!isInteractiveMode && !showRawJson">
+      <div class="summary-stats">
+        <div class="stat-item">
+          <label>Title:</label>
+          <span>{{ schema.title || 'Untitled Schema' }}</span>
+        </div>
+        <div class="stat-item" *ngIf="schema.description">
+          <label>Description:</label>
+          <span>{{ schema.description }}</span>
+        </div>
+        <div class="stat-item">
+          <label>Properties:</label>
+          <span>{{ getSchemaStats().properties }}</span>
+        </div>
+        <div class="stat-item">
+          <label>Required:</label>
+          <span>{{ getSchemaStats().required }}</span>
+        </div>
+        <div class="stat-item">
+          <label>Types Used:</label>
+          <span class="types-list">
+            <span class="type-badge" *ngFor="let type of getSchemaStats().types">
+              {{ type }}
+            </span>
+          </span>
+        </div>
+        <div class="stat-item">
+          <label>Additional Properties:</label>
+          <span>{{ schema.additionalProperties ? 'Allowed' : 'Not Allowed' }}</span>
+        </div>
+      </div>
+
+      <div class="schema-properties" *ngIf="hasProperties()">
+        <h4>Properties</h4>
+        <div class="properties-table">
+          <div class="property-row header-row">
+            <span class="property-name">Name</span>
+            <span class="property-type">Type</span>
+            <span class="property-required">Required</span>
+            <span class="property-description">Description</span>
+          </div>
+          <div class="property-row" *ngFor="let prop of getPropertiesArray()">
+            <span class="property-name">{{ prop.name }}</span>
+            <span class="property-type">
+              <span class="type-badge">{{ prop.type }}</span>
+            </span>
+            <span class="property-required">
+              <span class="required-badge" [class.required]="prop.required">
+                {{ prop.required ? '✓' : '✗' }}
+              </span>
+            </span>
+            <span class="property-description">{{ prop.description || '-' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Traditional JSON View -->
+    <div class="json-view" *ngIf="!isInteractiveMode && showRawJson">
+      <pre class="json-content"><code>{{ formattedJson }}</code></pre>
+    </div>
+  </div>
+</div>
+
+<div class="no-schema" *ngIf="!schema">
+  <p>No schema available for preview</p>
+</div>

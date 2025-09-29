@@ -1,0 +1,410 @@
+<div class="compact-property-item" [style.margin-left.px]="level * 12" [class.expanded]="isExpanded" *ngIf="propertyForm" [formGroup]="propertyForm">
+  <div class="property-row" [class.has-children]="hasChildren()">>
+    <button 
+      *ngIf="hasChildren()" 
+      type="button" 
+      class="expand-btn"
+      (click)="toggleExpanded()">
+      <span class="expand-icon" [class.expanded]="isExpanded">▶</span>
+    </button>
+    <div class="spacer" *ngIf="!hasChildren()"></div>
+
+    <span class="type-badge" [class]="'type-' + property.type.toLowerCase()">
+      {{ property.type.substring(0, 3).toUpperCase() }}
+    </span>
+
+    <input 
+      class="name-input"
+      type="text"
+      formControlName="name"
+      placeholder="property">
+
+    <input 
+      class="title-input-compact"
+      type="text"
+      formControlName="title"
+      placeholder="Title">
+
+    <label class="req-toggle" 
+           [attr.data-checked]="propertyForm.get('required')?.value || false"
+           title="{{ (propertyForm.get('required')?.value ? 'Required property' : 'Optional property') + ' (click to toggle)' }}">
+      <input 
+        type="checkbox" 
+        formControlName="required">
+      <span class="req-indicator">{{ propertyForm.get('required')?.value ? '*' : '○' }}</span>
+    </label>
+
+    <select 
+      class="type-select"
+      formControlName="type">
+      <option *ngFor="let type of propertyTypes" [value]="type">{{ type }}</option>
+    </select>
+
+    <div class="actions">
+      <button 
+        type="button" 
+        class="btn-icon"
+        (click)="toggleAdvanced()"
+        [class.active]="showAdvanced"
+        title="Settings">
+        ⚙
+      </button>
+      <button 
+        *ngIf="canAddChildren()"
+        type="button" 
+        class="btn-icon"
+        (click)="addChild()"
+        title="Add child">
+        +
+      </button>
+      <button 
+        type="button" 
+        class="btn-icon btn-delete"
+        (click)="deleteProperty.emit()"
+        title="Delete">
+        ×
+      </button>
+    </div>
+  </div>
+
+  <div class="advanced-panel" *ngIf="showAdvanced">
+    <input 
+      type="text" 
+      formControlName="description"
+      placeholder="Description"
+      class="desc-input-full">
+
+    <div class="constraints-row" [ngSwitch]="property.type">
+      <!-- STRING constraints -->
+      <ng-container *ngSwitchCase="PropertyType.STRING">
+        <select formControlName="format" title="String format validation">
+          <option value="">Format</option>
+          <option *ngFor="let format of stringFormats" [value]="format">{{ format }}</option>
+        </select>
+        <input type="text" 
+               formControlName="pattern"
+               placeholder="^[A-Za-z0-9]+$"
+               class="pattern-input"
+               title="Regular expression pattern (e.g., ^[A-Za-z0-9]+$ for alphanumeric)">
+        <input type="number" 
+               formControlName="minLength"
+               placeholder="Min length"
+               min="0"
+               title="Minimum string length">
+        <input type="number" 
+               formControlName="maxLength"
+               placeholder="Max length"
+               min="0"
+               title="Maximum string length">
+        
+        <!-- Draft 7+ content fields -->
+        <ng-container *ngIf="supportedFeatures.includes('contentEncoding')">
+          <select formControlName="contentEncoding" title="Content encoding (Draft 7+)">
+            <option value="">Content Encoding</option>
+            <option *ngFor="let encoding of contentEncodings" [value]="encoding">{{ encoding }}</option>
+          </select>
+          <select formControlName="contentMediaType" title="Content media type (Draft 7+)">
+            <option value="">Media Type</option>
+            <option *ngFor="let mediaType of contentMediaTypes" [value]="mediaType">{{ mediaType }}</option>
+          </select>
+        </ng-container>
+      </ng-container>
+
+      <!-- NUMBER/INTEGER constraints -->
+      <ng-container *ngSwitchCase="PropertyType.NUMBER">
+        <input type="number" 
+               formControlName="minimum"
+               placeholder="Minimum"
+               step="any"
+               title="Minimum value (inclusive)">
+        <input type="number" 
+               formControlName="maximum"
+               placeholder="Maximum"
+               step="any"
+               title="Maximum value (inclusive)">
+        
+        <!-- Draft-aware exclusive constraints -->
+        <ng-container *ngIf="exclusiveMinimumType === 'number'">
+          <input type="number" 
+                 formControlName="exclusiveMinimum"
+                 placeholder="Exclusive min"
+                 step="any"
+                 title="Exclusive minimum value (Draft 6+)">
+          <input type="number" 
+                 formControlName="exclusiveMaximum"
+                 placeholder="Exclusive max"
+                 step="any"
+                 title="Exclusive maximum value (Draft 6+)">
+        </ng-container>
+        
+        <!-- Draft 4 boolean exclusive constraints -->
+        <ng-container *ngIf="exclusiveMinimumType === 'boolean'">
+          <label title="Exclusive minimum (Draft 4)">
+            <input type="checkbox" formControlName="exclusiveMinimumBoolean">
+            Exclusive min
+          </label>
+          <label title="Exclusive maximum (Draft 4)">
+            <input type="checkbox" formControlName="exclusiveMaximumBoolean">
+            Exclusive max
+          </label>
+        </ng-container>
+        
+        <input type="number" 
+               formControlName="multipleOf"
+               placeholder="Multiple of"
+               step="any"
+               min="0"
+               title="Value must be multiple of this number">
+      </ng-container>
+
+      <!-- INTEGER constraints (inherit from number) -->
+      <ng-container *ngSwitchCase="PropertyType.INTEGER">
+        <input type="number" 
+               formControlName="minimum"
+               placeholder="Minimum"
+               step="1"
+               title="Minimum value (inclusive)">
+        <input type="number" 
+               formControlName="maximum"
+               placeholder="Maximum"
+               step="1"
+               title="Maximum value (inclusive)">
+        
+        <!-- Draft-aware exclusive constraints -->
+        <ng-container *ngIf="exclusiveMinimumType === 'number'">
+          <input type="number" 
+                 formControlName="exclusiveMinimum"
+                 placeholder="Exclusive min"
+                 step="1"
+                 title="Exclusive minimum value (Draft 6+)">
+          <input type="number" 
+                 formControlName="exclusiveMaximum"
+                 placeholder="Exclusive max"
+                 step="1"
+                 title="Exclusive maximum value (Draft 6+)">
+        </ng-container>
+        
+        <input type="number" 
+               formControlName="multipleOf"
+               placeholder="Multiple of"
+               step="1"
+               min="1"
+               title="Value must be multiple of this integer">
+      </ng-container>
+
+      <!-- ARRAY constraints -->
+      <ng-container *ngSwitchCase="PropertyType.ARRAY">
+        <input type="number" 
+               formControlName="minItems"
+               placeholder="Min items"
+               min="0"
+               title="Minimum number of items">
+        <input type="number" 
+               formControlName="maxItems"
+               placeholder="Max items"
+               min="0"
+               title="Maximum number of items">
+        <label title="All items must be unique">
+          <input type="checkbox" formControlName="uniqueItems">
+          Unique items
+        </label>
+        <label title="Allow additional items beyond schema definition">
+          <input type="checkbox" formControlName="additionalItems">
+          Additional items
+        </label>
+      </ng-container>
+
+      <!-- OBJECT constraints -->
+      <ng-container *ngSwitchCase="PropertyType.OBJECT">
+        <input type="number" 
+               formControlName="minProperties"
+               placeholder="Min properties"
+               min="0"
+               title="Minimum number of properties">
+        <input type="number" 
+               formControlName="maxProperties"
+               placeholder="Max properties"  
+               min="0"
+               title="Maximum number of properties">
+        <label title="Allow additional properties">
+          <input type="checkbox" formControlName="additionalProperties">
+          Additional props
+        </label>
+        
+        <!-- Draft 6+ property names validation -->
+        <ng-container *ngIf="supportedFeatures.includes('propertyNames')">
+          <input type="text"
+                 formControlName="propertyNamesPattern"
+                 placeholder="Property name pattern"
+                 title="Pattern for property names (Draft 6+)">
+        </ng-container>
+      </ng-container>
+
+      <!-- BOOLEAN constraints (limited) -->
+      <ng-container *ngSwitchCase="PropertyType.BOOLEAN">
+        <span class="constraint-note">Boolean values: true or false</span>
+      </ng-container>
+
+      <!-- NULL constraints (very limited) -->
+      <ng-container *ngSwitchCase="PropertyType.NULL">
+        <span class="constraint-note">Null value only</span>
+      </ng-container>
+    </div>
+
+    <div class="values-row">
+      <!-- Enum values -->
+      <input 
+        type="text" 
+        formControlName="enumValues"
+        placeholder="Enum: val1,val2,val3"
+        title="Comma-separated list of allowed values">
+      
+      <!-- Const value (Draft 6+) -->
+      <ng-container *ngIf="supportedFeatures.includes('const')">
+        <input 
+          type="text" 
+          formControlName="constValue"
+          placeholder="Constant value"
+          title="Single allowed value (Draft 6+)">
+      </ng-container>
+      
+      <!-- Default value -->
+      <input 
+        type="text" 
+        formControlName="defaultValue"
+        placeholder="Default value"
+        title="Default value for this property">
+      
+      <!-- Examples (Draft 6+) -->
+      <ng-container *ngIf="supportedFeatures.includes('examples')">
+        <input 
+          type="text" 
+          formControlName="examples"
+          placeholder="Examples: ex1,ex2,ex3"
+          title="Example values (Draft 6+)">
+      </ng-container>
+    </div>
+
+    <!-- Advanced annotations row (Draft 7+) -->
+    <div class="annotations-row" *ngIf="showAnnotations()">
+      <ng-container *ngIf="supportedFeatures.includes('comment')">
+        <input 
+          type="text" 
+          formControlName="comment"
+          placeholder="Schema comment"
+          title="Internal comment (Draft 7+)">
+      </ng-container>
+      
+      <div class="annotation-toggles">
+        <ng-container *ngIf="supportedFeatures.includes('deprecated')">
+          <label title="Mark as deprecated (Draft 7+)">
+            <input type="checkbox" formControlName="deprecated">
+            Deprecated
+          </label>
+        </ng-container>
+        
+        <ng-container *ngIf="supportedFeatures.includes('readOnly')">
+          <label title="Read-only property (Draft 7+)">
+            <input type="checkbox" formControlName="readOnly">
+            Read-only
+          </label>
+        </ng-container>
+        
+        <ng-container *ngIf="supportedFeatures.includes('writeOnly')">
+          <label title="Write-only property (Draft 7+)">
+            <input type="checkbox" formControlName="writeOnly">
+            Write-only
+          </label>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- Conditional validation (Draft 7+) -->
+    <div class="conditional-row" *ngIf="supportedFeatures.includes('if') && showConditional">
+      <h5>Conditional Validation (Draft 7+)</h5>
+      <textarea 
+        formControlName="ifCondition"
+        placeholder="If condition (JSON Schema)"
+        rows="2"
+        title="Condition schema (if)"></textarea>
+      <textarea 
+        formControlName="thenSchema"
+        placeholder="Then schema (JSON Schema)" 
+        rows="2"
+        title="Schema when condition is true (then)"></textarea>
+      <textarea 
+        formControlName="elseSchema"
+        placeholder="Else schema (JSON Schema)"
+        rows="2" 
+        title="Schema when condition is false (else)"></textarea>
+    </div>
+
+    <!-- Advanced toggles -->
+    <div class="advanced-toggles">
+      <ng-container *ngIf="supportedFeatures.includes('if')">
+        <button type="button" 
+                class="btn-toggle" 
+                [class.active]="showConditional"
+                (click)="showConditional = !showConditional">
+          📐 Conditional
+        </button>
+      </ng-container>
+      
+      <button type="button" 
+              class="btn-toggle" 
+              [class.active]="showComposition"
+              (click)="showComposition = !showComposition">
+        🔗 Composition
+      </button>
+    </div>
+
+    <!-- Composition schemas (allOf, anyOf, oneOf, not) -->
+    <div class="composition-row" *ngIf="showComposition">
+      <h5>Schema Composition</h5>
+      <textarea 
+        formControlName="allOf"
+        placeholder="allOf schemas (JSON array)"
+        rows="2"
+        title="Must match all schemas"></textarea>
+      <textarea 
+        formControlName="anyOf"
+        placeholder="anyOf schemas (JSON array)"
+        rows="2"
+        title="Must match at least one schema"></textarea>
+      <textarea 
+        formControlName="oneOf"
+        placeholder="oneOf schemas (JSON array)"
+        rows="2"
+        title="Must match exactly one schema"></textarea>
+      <textarea 
+        formControlName="not"
+        placeholder="not schema (JSON Schema)"
+        rows="2"
+        title="Must not match this schema"></textarea>
+    </div>
+  </div>
+
+  <div class="children" *ngIf="isExpanded && hasChildren()">
+    <div *ngIf="property.type === PropertyType.ARRAY && property.items">
+      <app-property-tree-editor
+        [property]="property.items"
+        [currentDraft]="currentDraft"
+        [level]="level + 1"
+        (propertyChange)="updateItems($event)"
+        (deleteProperty)="removeItems()">
+      </app-property-tree-editor>
+    </div>
+
+    <div *ngIf="property.type === PropertyType.OBJECT && property.properties">
+      <div *ngFor="let prop of getObjectProperties(); trackBy: trackByPropertyName">
+        <app-property-tree-editor
+          [property]="prop"
+          [currentDraft]="currentDraft"
+          [level]="level + 1"
+          (propertyChange)="updateChildProperty(prop.id, $event)"
+          (deleteProperty)="removeChildProperty(prop.id)">
+        </app-property-tree-editor>
+      </div>
+    </div>
+  </div>
+</div>
