@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/legacy-schema.json",
+  "title": "Legacy Draft-07 Schema",
+  "description": "Testing backward compatibility with Draft 07",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "age": {
+      "type": "integer",
+      "minimum": 0,
+      "exclusiveMaximum": 120
+    },
+    "contact": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "pattern": "^\\+?[1-9]\\d{1,14}$"
+        }
+      },
+      "required": ["email"]
+    },
+    "hobbies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "status": {
+      "enum": ["active", "inactive", "pending"]
+    }
+  },
+  "required": ["name"],
+  "if": {
+    "properties": {
+      "age": { "minimum": 18 }
+    }
+  },
+  "then": {
+    "properties": {
+      "canVote": { "type": "boolean", "const": true }
+    }
+  },
+  "else": {
+    "properties": {
+      "canVote": { "type": "boolean", "const": false }
+    }
+  }
+}

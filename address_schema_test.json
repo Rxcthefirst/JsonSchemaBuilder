@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/address.schema.json",
+  "title": "InternationalAddress",
+  "type": "object",
+  "properties": {
+    "country": {"type": "string", "enum": ["US", "CA", "GB"]},
+    "postalCode": {"type": "string"}
+  },
+  "required": ["country", "postalCode"],
+  "allOf": [
+    {
+      "if": {"properties": {"country": {"const": "US"}}, "required": ["country"]},
+      "then": {"properties": {"postalCode": {"pattern": "^\\d{5}(-\\d{4})?$"}}}
+    },
+    {
+      "if": {"properties": {"country": {"const": "CA"}}, "required": ["country"]},
+      "then": {"properties": {"postalCode": {"pattern": "^[A-Z]\\d[A-Z] \\d[A-Z]\\d$"}}}
+    },
+    {
+      "if": {"properties": {"country": {"const": "GB"}}, "required": ["country"]},
+      "then": {"properties": {"postalCode": {"pattern": "^[A-Z]{1,2}\\d[A-Z\\d]? \\d[A-Z]{2}$"}}}
+    }
+  ]
+}

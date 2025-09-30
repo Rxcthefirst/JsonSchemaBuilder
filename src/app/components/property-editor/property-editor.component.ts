@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -15,7 +15,7 @@ import {
   templateUrl: './property-editor.component.html',
   styleUrl: './property-editor.component.scss'
 })
-export class PropertyEditorComponent implements OnInit, OnDestroy {
+export class PropertyEditorComponent implements OnInit, OnDestroy, OnChanges {
   @Input() property!: SchemaProperty;
   @Input() nestingDepth: number = 0;
   @Output() propertyChange = new EventEmitter<SchemaProperty>();
@@ -40,6 +40,12 @@ export class PropertyEditorComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['property'] && this.propertyForm) {
+      this.updateFormFromProperty();
+    }
   }
 
   private initializeForm(): void {
@@ -79,6 +85,46 @@ export class PropertyEditorComponent implements OnInit, OnDestroy {
     });
   }
 
+  private updateFormFromProperty(): void {
+    this.propertyForm.patchValue({
+      name: this.property.name,
+      type: this.property.type,
+      title: this.property.title || '',
+      description: this.property.description || '',
+      required: this.property.required || false,
+      defaultValue: this.property.defaultValue,
+      
+      // String-specific
+      minLength: this.property.minLength,
+      maxLength: this.property.maxLength,
+      pattern: this.property.pattern || '',
+      format: this.property.format || '',
+      
+      // Number/Integer-specific
+      minimum: this.property.minimum,
+      maximum: this.property.maximum,
+      exclusiveMinimum: this.property.exclusiveMinimum,
+      exclusiveMaximum: this.property.exclusiveMaximum,
+      multipleOf: this.property.multipleOf,
+      
+      // Array-specific
+      minItems: this.property.minItems,
+      maxItems: this.property.maxItems,
+      uniqueItems: this.property.uniqueItems || false,
+      
+      // Object-specific
+      minProperties: this.property.minProperties,
+      maxProperties: this.property.maxProperties,
+      additionalProperties: this.property.additionalProperties !== false,
+      
+      // Enum values
+      enumValues: this.property.enum ? this.property.enum.join(', ') : ''
+    }, { emitEvent: false });
+    
+    // Update the previous type to the current type to prevent clearing data unnecessarily
+    this.previousType = this.property.type;
+  }
+
   private subscribeToFormChanges(): void {
     // Subscribe to type changes specifically
     this.propertyForm.get('type')?.valueChanges
@@ -104,8 +150,9 @@ export class PropertyEditorComponent implements OnInit, OnDestroy {
 
   private clearTypeSpecificData(oldType: PropertyType): void {
     const updatedProperty = { ...this.property };
+    const newType = this.propertyForm.get('type')?.value as PropertyType;
     
-    // Clear old type-specific properties
+    // Clear old type-specific properties, but preserve compatible ones
     switch (oldType) {
       case PropertyType.STRING:
         delete updatedProperty.minLength;
@@ -115,11 +162,14 @@ export class PropertyEditorComponent implements OnInit, OnDestroy {
         break;
       case PropertyType.NUMBER:
       case PropertyType.INTEGER:
-        delete updatedProperty.minimum;
-        delete updatedProperty.maximum;
-        delete updatedProperty.exclusiveMinimum;
-        delete updatedProperty.exclusiveMaximum;
-        delete updatedProperty.multipleOf;
+        // Only clear numeric properties if switching to a non-numeric type
+        if (newType !== PropertyType.NUMBER && newType !== PropertyType.INTEGER) {
+          delete updatedProperty.minimum;
+          delete updatedProperty.maximum;
+          delete updatedProperty.exclusiveMinimum;
+          delete updatedProperty.exclusiveMaximum;
+          delete updatedProperty.multipleOf;
+        }
         break;
       case PropertyType.ARRAY:
         delete updatedProperty.minItems;
@@ -135,8 +185,10 @@ export class PropertyEditorComponent implements OnInit, OnDestroy {
         break;
     }
     
-    // Clear enum for all types
-    delete updatedProperty.enum;
+    // Clear enum for all types except when staying within compatible types
+    if (!this.areTypesCompatibleForEnum(oldType, newType)) {
+      delete updatedProperty.enum;
+    }
     
     // Update the property and emit change
     this.property = updatedProperty;
@@ -483,5 +535,21 @@ export class PropertyEditorComponent implements OnInit, OnDestroy {
     
     this.property.items.description = target.value;
     this.emitPropertyChange();
+  }
+
+  private areTypesCompatibleForEnum(oldType: PropertyType, newType: PropertyType): boolean {
+    // Number and integer types are compatible for enums
+    const numericTypes = [PropertyType.NUMBER, PropertyType.INTEGER];
+    if (numericTypes.includes(oldType) && numericTypes.includes(newType)) {
+      return true;
+    }
+    
+    // Same type is always compatible
+    if (oldType === newType) {
+      return true;
+    }
+    
+    // All other type changes clear enums
+    return false;
   }
 }

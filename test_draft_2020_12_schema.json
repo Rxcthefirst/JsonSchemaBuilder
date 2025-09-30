@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/person.schema.json",
+  "title": "Person Schema - Draft 2020-12",
+  "description": "A comprehensive schema demonstrating Draft 2020-12 features",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "examples": ["John Doe", "Jane Smith"]
+    },
+    "age": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 150,
+      "comment": "Age in years"
+    },
+    "emails": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "string", "format": "email", "description": "Primary email" },
+        { "type": "string", "format": "email", "description": "Secondary email" }
+      ],
+      "unevaluatedItems": false,
+      "minItems": 1
+    },
+    "address": {
+      "type": "object",
+      "properties": {
+        "street": { "type": "string" },
+        "city": { "type": "string" },
+        "zipCode": { "type": "string", "pattern": "^[0-9]{5}(-[0-9]{4})?$" }
+      },
+      "required": ["street", "city"],
+      "unevaluatedProperties": false
+    },
+    "phoneNumbers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "enum": ["home", "work", "mobile"] },
+          "number": { "type": "string" }
+        },
+        "required": ["type", "number"]
+      }
+    },
+    "status": {
+      "oneOf": [
+        { "const": "active" },
+        { "const": "inactive" },
+        { "const": "pending" }
+      ]
+    }
+  },
+  "required": ["name", "age"],
+  "dependentRequired": {
+    "emails": ["name"]
+  },
+  "dependentSchemas": {
+    "age": {
+      "if": { "properties": { "age": { "minimum": 18 } } },
+      "then": { "properties": { "canVote": { "type": "boolean", "const": true } } },
+      "else": { "properties": { "canVote": { "type": "boolean", "const": false } } }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "age": { "minimum": 65 } } },
+      "then": { "properties": { "seniorDiscount": { "type": "boolean" } } }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "examples": [
+    {
+      "name": "John Doe",
+      "age": 30,
+      "emails": ["john@example.com"],
+      "address": {
+        "street": "123 Main St",
+        "city": "Anytown",
+        "zipCode": "12345"
+      },
+      "status": "active"
+    }
+  ]
+}

@@ -57,6 +57,8 @@ export interface SchemaProperty {
   uniqueItems?: boolean;
   contains?: SchemaProperty; // Draft 6+
   additionalItems?: boolean | SchemaProperty; // For tuple validation
+  prefixItems?: SchemaProperty[]; // Draft 2020-12+
+  unevaluatedItems?: boolean | SchemaProperty; // Draft 2020-12+
   
   // Object-specific
   minProperties?: number;
@@ -67,6 +69,7 @@ export interface SchemaProperty {
   dependencies?: { [key: string]: string[] | SchemaProperty }; // Deprecated in Draft 2019-09
   dependentRequired?: { [key: string]: string[] }; // Draft 2019-09+
   dependentSchemas?: { [key: string]: SchemaProperty }; // Draft 2019-09+
+  unevaluatedProperties?: boolean | SchemaProperty; // Draft 2020-12+
   
   // Conditional validation (Draft 7+)
   if?: SchemaProperty;
@@ -96,13 +99,74 @@ export interface JsonSchema {
   type?: PropertyType;
   properties?: { [key: string]: SchemaProperty };
   required?: string[];
-  additionalProperties?: boolean;
+  additionalProperties?: boolean | SchemaProperty;
   definitions?: { [key: string]: SchemaProperty };
+  
+  // Root-level validation properties
+  enum?: any[];
+  const?: any;
+  
+  // String constraints (when type is string)
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  format?: string;
+  contentEncoding?: string;
+  contentMediaType?: string;
+  
+  // Number constraints (when type is number/integer)
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number | boolean;
+  exclusiveMaximum?: number | boolean;
+  multipleOf?: number;
+  
+  // Array constraints (when type is array)
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
+  items?: SchemaProperty;
+  additionalItems?: boolean | SchemaProperty;
+  contains?: SchemaProperty;
+  prefixItems?: SchemaProperty[];
+  unevaluatedItems?: boolean | SchemaProperty;
+  
+  // Object constraints (when type is object)
+  minProperties?: number;
+  maxProperties?: number;
+  patternProperties?: { [pattern: string]: SchemaProperty };
+  propertyNames?: SchemaProperty;
+  dependencies?: { [key: string]: string[] | SchemaProperty };
+  dependentRequired?: { [key: string]: string[] };
+  dependentSchemas?: { [key: string]: SchemaProperty };
+  unevaluatedProperties?: boolean | SchemaProperty;
+  
+  // Conditional validation
+  if?: SchemaProperty;
+  then?: SchemaProperty;
+  else?: SchemaProperty;
+  
+  // Composition keywords
+  allOf?: SchemaProperty[];
+  anyOf?: SchemaProperty[];
+  oneOf?: SchemaProperty[];
+  not?: SchemaProperty;
+  
+  // Annotations
+  examples?: any[];
+  comment?: string;
+  deprecated?: boolean;
+  readOnly?: boolean;
+  writeOnly?: boolean;
+  
+  // Default value
+  default?: any;
 }
 
 export interface SchemaConfiguration {
   useReferences: boolean; // Enable $ref pattern generation
   generateDefinitions: boolean; // Auto-generate definitions section
+  draftVersion: string; // JSON Schema draft version
 }
 
 export interface SchemaFormData {
@@ -185,5 +249,15 @@ export const VALIDATION_RULE_TYPES = {
 
 export const DEFAULT_SCHEMA_CONFIG: SchemaConfiguration = {
   useReferences: false,
-  generateDefinitions: true
+  generateDefinitions: true,
+  draftVersion: 'https://json-schema.org/draft/2020-12/schema'
+};
+
+// Map JSON Schema draft versions to Monaco validation URIs
+export const DRAFT_VERSION_MAP = {
+  'https://json-schema.org/draft-04/schema': 'http://json-schema.org/draft-04/schema#',
+  'https://json-schema.org/draft-06/schema': 'http://json-schema.org/draft-06/schema#', 
+  'https://json-schema.org/draft-07/schema': 'http://json-schema.org/draft-07/schema#',
+  'https://json-schema.org/draft/2019-09/schema': 'http://json-schema.org/draft-07/schema#', // Monaco fallback
+  'https://json-schema.org/draft/2020-12/schema': 'http://json-schema.org/draft-07/schema#'  // Monaco fallback
 };

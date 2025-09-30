@@ -1,5 +1,7 @@
 import { Component, ElementRef, Input, Output, EventEmitter, ViewChild, OnInit, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SchemaBuilderService } from '../../services/schema-builder.service';
+import { DRAFT_VERSION_MAP } from '../../models/schema.models';
 
 declare var monaco: any;
 
@@ -140,6 +142,8 @@ export class MonacoEditorComponent implements OnInit, OnDestroy, OnChanges {
   private validationInterval: any;
   
   isDarkTheme = false;
+
+  constructor(private schemaBuilderService: SchemaBuilderService) {}
   validationErrors: any[] = [];
   cursorPosition = { line: 1, column: 1 };
   contentLength = 0;
@@ -180,6 +184,13 @@ export class MonacoEditorComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnInit(): void {
     this.loadMonaco();
+    
+    // Subscribe to configuration changes to update Monaco validation
+    this.schemaBuilderService.configuration$.subscribe(config => {
+      if (this.monacoLoaded && monaco) {
+        this.updateMonacoValidation();
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -400,12 +411,34 @@ export class MonacoEditorComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
-    // Configure JSON language service
+    // Configure JSON language service with current draft version
+    const currentConfig = this.schemaBuilderService.getConfiguration();
+    const monacoSchemaUri = (DRAFT_VERSION_MAP as any)[currentConfig.draftVersion] || 'http://json-schema.org/draft-07/schema#';
+    
     monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
       validate: true,
       allowComments: false,
       schemas: [{
-        uri: 'http://json-schema.org/draft-07/schema#',
+        uri: monacoSchemaUri,
+        fileMatch: ['*'],
+        schema: this.jsonSchema
+      }],
+      enableSchemaRequest: true
+    });
+  }
+
+  private updateMonacoValidation(): void {
+    if (!monaco) return;
+    
+    // Update JSON language service with current draft version
+    const currentConfig = this.schemaBuilderService.getConfiguration();
+    const monacoSchemaUri = (DRAFT_VERSION_MAP as any)[currentConfig.draftVersion] || 'http://json-schema.org/draft-07/schema#';
+    
+    monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+      validate: true,
+      allowComments: false,
+      schemas: [{
+        uri: monacoSchemaUri,
         fileMatch: ['*'],
         schema: this.jsonSchema
       }],
@@ -584,34 +617,41 @@ export class MonacoEditorComponent implements OnInit, OnDestroy, OnChanges {
 
     const warnings: any[] = [];
     
+    // Check for composition keywords early for use in multiple validations
+    const hasCompositionKeywords = parsed.allOf || parsed.anyOf || parsed.oneOf || parsed.not;
+    const isRootLevelComposition = hasCompositionKeywords && !parsed.type;
+    
     // Check for common JSON Schema best practices
     if (!parsed.$schema) {
+      const currentConfig = this.schemaBuilderService.getConfiguration();
       warnings.push({
         line: 1,
         column: 1,
         message: 'Consider adding $schema property to specify JSON Schema version',
         severity: 'warning',
-        suggestion: 'Add: "$schema": "http://json-schema.org/draft-07/schema#"'
+        suggestion: `Add: "$schema": "${currentConfig.draftVersion}"`
       });
     }
 
-    if (!parsed.type && !parsed.$ref) {
+    // Allow schemas without type if they use composition keywords (common pattern)
+    if (!parsed.type && !parsed.$ref && !hasCompositionKeywords) {
       warnings.push({
         line: 1,
         column: 1,
-        message: 'Schema should specify a type or be a reference',
+        message: 'Schema should specify a type, reference, or use composition keywords',
         severity: 'warning',
-        suggestion: 'Add: "type": "object" (or appropriate type)'
+        suggestion: 'Add: "type": "object" or use "allOf", "anyOf", "oneOf"'
       });
     }
 
-    if (parsed.type === 'object' && !parsed.properties && !parsed.$ref) {
+    // Check if object has properties, but allow composition keywords and root-level schemas
+    if (parsed.type === 'object' && !parsed.properties && !parsed.$ref && !hasCompositionKeywords) {
       warnings.push({
         line: this.findLineForProperty(content, 'type'),
         column: 1,
-        message: 'Object type should define properties',
+        message: 'Object type should define properties or use composition keywords',
         severity: 'warning',
-        suggestion: 'Add: "properties": { ... }'
+        suggestion: 'Add: "properties": { ... } or use "allOf", "anyOf", "oneOf"'
       });
     }
 

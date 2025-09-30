@@ -38,6 +38,15 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
   showDiagram = false;
   showRightPanel = true;
   currentView: 'workspace' | 'preview' | 'diagram' = 'workspace';
+
+  // Available JSON Schema draft versions
+  availableDrafts = [
+    { value: 'https://json-schema.org/draft-04/schema', label: 'Draft 04' },
+    { value: 'https://json-schema.org/draft-06/schema', label: 'Draft 06' },
+    { value: 'https://json-schema.org/draft-07/schema', label: 'Draft 07' },
+    { value: 'https://json-schema.org/draft/2019-09/schema', label: 'Draft 2019-09' },
+    { value: 'https://json-schema.org/draft/2020-12/schema', label: 'Draft 2020-12' }
+  ];
   activeRightPanel: 'preview' | 'diagram' = 'preview';
   
   // Validation state
@@ -59,7 +68,8 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
     this.configForm = this.fb.group({
       useReferences: new FormControl(false),
       generateDefinitions: new FormControl(true),
-      enableInteractivePreview: new FormControl(false)
+      enableInteractivePreview: new FormControl(false),
+      draftVersion: new FormControl('https://json-schema.org/draft/2020-12/schema')
     });
   }
 
@@ -128,7 +138,8 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
   private updateConfigForm(config: SchemaConfiguration): void {
     this.configForm.patchValue({
       useReferences: config.useReferences,
-      generateDefinitions: config.generateDefinitions
+      generateDefinitions: config.generateDefinitions,
+      draftVersion: config.draftVersion
     }, { emitEvent: false });
   }
 

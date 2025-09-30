@@ -48,6 +48,7 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
   showConditional = false;
   showComposition = false;
   private previousType: PropertyType | null = null;
+  private isUpdatingForm = false;
   
   constructor(
     private fb: FormBuilder,
@@ -81,20 +82,15 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['property']) {
-      console.log('Property changed:', changes['property'].currentValue?.name, 'Type:', changes['property'].currentValue?.type);
       if (this.propertyForm) {
         // Property has changed, update the form to reflect new values
         this.updateFormFromProperty();
-      } else {
-        console.log('Form not initialized yet, will be handled in ngOnInit');
       }
       // If form not initialized yet, it will be handled in ngOnInit with current property values
     }
   }
 
   private initializeForm(): void {
-    console.log('Initializing form for property:', this.property.name, 'Type:', this.property.type);
-    
     this.propertyForm = this.fb.group({
       name: [this.property.name],
       type: [this.property.type],
@@ -166,14 +162,20 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
       this.previousType = newType;
     });
     
+    // Subscribe to all form changes to emit property updates
+    this.propertyForm.valueChanges.subscribe(() => {
+      if (!this.isUpdatingForm) {
+        this.updateProperty();
+      }
+    });
+    
     // Set initial previous type
     this.previousType = this.property.type;
   }
 
   private updateFormFromProperty(): void {
-    // Add debugging
-    console.log('Updating form from property:', this.property.name, 'Type:', this.property.type);
-    console.log('Current form type value:', this.propertyForm.get('type')?.value);
+    // Set flag to prevent infinite loops
+    this.isUpdatingForm = true;
     
     // Update form controls to match the current property values
     this.propertyForm.patchValue({
@@ -184,24 +186,28 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
       required: this.property.required || false,
       
       // String constraints
-      minLength: this.property.minLength || '',
-      maxLength: this.property.maxLength || '',
+      minLength: this.property.minLength ?? '',
+      maxLength: this.property.maxLength ?? '',
       pattern: this.property.pattern || '',
       format: this.property.format || '',
       
       // Number constraints
-      minimum: this.property.minimum || '',
-      maximum: this.property.maximum || '',
-      multipleOf: this.property.multipleOf || '',
+      minimum: this.property.minimum ?? '',
+      maximum: this.property.maximum ?? '',
+      exclusiveMinimum: this.property.exclusiveMinimum ?? '',
+      exclusiveMaximum: this.property.exclusiveMaximum ?? '',
+      exclusiveMinimumBoolean: typeof this.property.exclusiveMinimum === 'boolean' ? this.property.exclusiveMinimum : false,
+      exclusiveMaximumBoolean: typeof this.property.exclusiveMaximum === 'boolean' ? this.property.exclusiveMaximum : false,
+      multipleOf: this.property.multipleOf ?? '',
       
       // Array constraints
-      minItems: this.property.minItems || '',
-      maxItems: this.property.maxItems || '',
+      minItems: this.property.minItems ?? '',
+      maxItems: this.property.maxItems ?? '',
       uniqueItems: this.property.uniqueItems || false,
       
       // Object constraints
-      minProperties: this.property.minProperties || '',
-      maxProperties: this.property.maxProperties || '',
+      minProperties: this.property.minProperties ?? '',
+      maxProperties: this.property.maxProperties ?? '',
       additionalProperties: this.property.additionalProperties !== false,
       
       // Enum values
@@ -210,6 +216,9 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
     
     // Update previous type to match current property
     this.previousType = this.property.type;
+    
+    // Reset the flag
+    this.isUpdatingForm = false;
   }
 
   private updateProperty(): void {

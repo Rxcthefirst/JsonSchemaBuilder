@@ -290,6 +290,20 @@
                 </span>
               </label>
             </div>
+
+            <div class="setting-item">
+              <label class="setting-label">
+                <span class="setting-text">
+                  <strong>JSON Schema Draft Version</strong>
+                  <small>Controls validation and feature support in the editor</small>
+                </span>
+              </label>
+              <select formControlName="draftVersion" class="form-control form-control-sm" style="margin-top: 0.25rem;">
+                <option *ngFor="let draft of availableDrafts" [value]="draft.value">
+                  {{ draft.label }}
+                </option>
+              </select>
+            </div>
             
             <div class="setting-item">
               <label class="setting-label">
