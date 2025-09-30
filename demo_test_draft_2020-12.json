@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/sample-containers.schema.json",
+  "title": "Sample Containers Schema",
+  "description": "Five containers with ~6 data elements each.",
+  "type": "object",
+  "properties": {
+    "person": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "personId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "birthDate": {
+          "$ref": "#/$defs/date"
+        },
+        "isActive": {
+          "type": "boolean",
+          "default": true
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "personId",
+        "fullName",
+        "email",
+        "isActive"
+      ]
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "ownerId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "suspended",
+            "closed",
+            "pending"
+          ]
+        },
+        "balance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "currency": {
+          "$ref": "#/$defs/currencyCode"
+        }
+      },
+      "required": [
+        "accountId",
+        "ownerId",
+        "createdAt",
+        "status",
+        "currency"
+      ]
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sku": {
+          "$ref": "#/$defs/sku"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "movie",
+            "book",
+            "music",
+            "software",
+            "other"
+          ]
+        },
+        "price": {
+          "type": "number",
+          "minimum": 0
+        },
+        "inStock": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "length": {
+              "type": "number",
+              "minimum": 0
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "length",
+            "width",
+            "height"
+          ]
+        }
+      },
+      "required": [
+        "sku",
+        "name",
+        "price",
+        "inStock"
+      ]
+    },
+    "order": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "orderId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "customerId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "productSku": {
+                "$ref": "#/$defs/sku"
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "unitPrice": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "productSku",
+              "quantity",
+              "unitPrice"
+            ]
+          }
+        },
+        "orderDate": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "totalAmount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "new",
+            "paid",
+            "shipped",
+            "delivered",
+            "canceled",
+            "refunded"
+          ]
+        }
+      },
+      "required": [
+        "orderId",
+        "customerId",
+        "items",
+        "orderDate",
+        "status"
+      ]
+    },
+    "shipment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "shipmentId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "orderId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "carrier": {
+          "type": "string",
+          "enum": [
+            "UPS",
+            "USPS",
+            "FedEx",
+            "DHL",
+            "Other"
+          ]
+        },
+        "trackingNumber": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64
+        },
+        "shippedAt": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "deliveredAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/dateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "shipmentId",
+        "orderId",
+        "carrier",
+        "trackingNumber",
+        "shippedAt"
+      ]
+    }
+  },
+  "required": [
+    "person",
+    "account",
+    "product",
+    "order",
+    "shipment"
+  ],
+  "additionalProperties": false
+}
