@@ -21,7 +21,24 @@ export interface ValidationResult {
   };
 }
 
-export type JsonSchemaDraft = 'draft-04' | 'draft-07' | 'draft-2019-09' | 'draft-2020-12';
+export type JsonSchemaDraft = 'draft-04' | 'draft-06' | 'draft-07' | 'draft-2019-09' | 'draft-2020-12';
+
+// Mapping between full schema URLs and short draft names
+export const DRAFT_URL_TO_NAME_MAP: { [key: string]: JsonSchemaDraft } = {
+  'https://json-schema.org/draft-04/schema': 'draft-04',
+  'https://json-schema.org/draft-06/schema': 'draft-06',
+  'https://json-schema.org/draft-07/schema': 'draft-07',
+  'https://json-schema.org/draft/2019-09/schema': 'draft-2019-09',
+  'https://json-schema.org/draft/2020-12/schema': 'draft-2020-12'
+};
+
+export const DRAFT_NAME_TO_URL_MAP: { [key in JsonSchemaDraft]: string } = {
+  'draft-04': 'https://json-schema.org/draft-04/schema',
+  'draft-06': 'https://json-schema.org/draft-06/schema',
+  'draft-07': 'https://json-schema.org/draft-07/schema',
+  'draft-2019-09': 'https://json-schema.org/draft/2019-09/schema',
+  'draft-2020-12': 'https://json-schema.org/draft/2020-12/schema'
+};
 
 @Injectable({
   providedIn: 'root'
@@ -29,6 +46,7 @@ export type JsonSchemaDraft = 'draft-04' | 'draft-07' | 'draft-2019-09' | 'draft
 export class SchemaValidationService {
   private supportedDrafts: JsonSchemaDraft[] = [
     'draft-04',
+    'draft-06',
     'draft-07', 
     'draft-2019-09',
     'draft-2020-12'
@@ -36,6 +54,7 @@ export class SchemaValidationService {
 
   private draftSchemas = {
     'draft-04': 'http://json-schema.org/draft-04/schema#',
+    'draft-06': 'http://json-schema.org/draft-06/schema#',
     'draft-07': 'http://json-schema.org/draft-07/schema#',
     'draft-2019-09': 'https://json-schema.org/draft/2019-09/schema',
     'draft-2020-12': 'https://json-schema.org/draft/2020-12/schema'
@@ -107,6 +126,20 @@ export class SchemaValidationService {
    */
   getDraftSchemaUri(draft: JsonSchemaDraft): string {
     return this.draftSchemas[draft];
+  }
+
+  /**
+   * Convert draft URL to short name
+   */
+  static urlToDraftName(url: string): JsonSchemaDraft {
+    return DRAFT_URL_TO_NAME_MAP[url] || 'draft-07';
+  }
+
+  /**
+   * Convert draft short name to URL
+   */
+  static draftNameToUrl(draft: JsonSchemaDraft): string {
+    return DRAFT_NAME_TO_URL_MAP[draft];
   }
 
   private validateBasicStructure(schema: JsonSchema, errors: ValidationError[]): void {

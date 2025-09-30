@@ -40,6 +40,9 @@
           <span *ngIf="currentView === 'workspace'">Schema Workspace</span>
           <span *ngIf="currentView === 'preview'">Schema Preview</span>
           <span *ngIf="currentView === 'diagram'">Schema Diagram</span>
+          <span class="draft-indicator" [title]="'Current JSON Schema Draft: ' + selectedDraft">
+            {{ selectedDraft.replace('draft-', 'Draft ').replace('-', '/') }}
+          </span>
         </h1>
         
         <div class="view-actions">

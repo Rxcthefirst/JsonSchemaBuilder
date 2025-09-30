@@ -65,6 +65,64 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
   private updateDraftFeatures(): void {
     // Update available formats based on current draft
     this.stringFormats = DEFAULT_STRING_FORMATS[this.currentDraft as keyof typeof DEFAULT_STRING_FORMATS] || DEFAULT_STRING_FORMATS['draft-07'];
+    
+    // Clean up unsupported properties for current draft
+    this.cleanupUnsupportedProperties();
+  }
+
+  private cleanupUnsupportedProperties(): void {
+    if (!this.property) return;
+
+    const supported = this.supportedFeatures;
+    const currentProperty = { ...this.property };
+    
+    // Remove properties not supported in current draft
+    if (!supported.includes('const')) {
+      delete (currentProperty as any).const;
+    }
+    if (!supported.includes('examples')) {
+      delete (currentProperty as any).examples;
+    }
+    if (!supported.includes('contentEncoding')) {
+      delete (currentProperty as any).contentEncoding;
+    }
+    if (!supported.includes('contentMediaType')) {
+      delete (currentProperty as any).contentMediaType;
+    }
+    if (!supported.includes('comment')) {
+      delete (currentProperty as any).comment;
+    }
+    if (!supported.includes('deprecated')) {
+      delete (currentProperty as any).deprecated;
+    }
+    if (!supported.includes('readOnly')) {
+      delete (currentProperty as any).readOnly;
+    }
+    if (!supported.includes('writeOnly')) {
+      delete (currentProperty as any).writeOnly;
+    }
+
+    // Handle exclusive minimum/maximum type changes
+    if (this.exclusiveMinimumType === 'boolean') {
+      // Convert number to boolean or remove if not applicable
+      if (typeof (currentProperty as any).exclusiveMinimum === 'number') {
+        delete (currentProperty as any).exclusiveMinimum;
+      }
+      if (typeof (currentProperty as any).exclusiveMaximum === 'number') {
+        delete (currentProperty as any).exclusiveMaximum;
+      }
+    } else {
+      // Remove boolean exclusive properties
+      delete (currentProperty as any).exclusiveMinimumBoolean;
+      delete (currentProperty as any).exclusiveMaximumBoolean;
+    }
+
+    // Update the property if changes were made
+    if (JSON.stringify(currentProperty) !== JSON.stringify(this.property)) {
+      this.property = currentProperty;
+      this.propertyChange.emit(this.property);
+      this.updateFormFromProperty();
+    }
   }
 
   get supportedFeatures(): string[] {

@@ -119,7 +119,16 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(values => {
         this.schemaBuilder.updateConfiguration(values);
+        
+        // Synchronize selectedDraft with draftVersion URL
+        if (values.draftVersion) {
+          this.selectedDraft = SchemaValidationService.urlToDraftName(values.draftVersion);
+        }
       });
+
+    // Initialize selectedDraft based on current config
+    const currentConfig = this.schemaBuilder.getConfiguration();
+    this.selectedDraft = SchemaValidationService.urlToDraftName(currentConfig.draftVersion);
   }
 
   ngOnDestroy(): void {
@@ -420,6 +429,15 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
 
   onDraftChange(draft: JsonSchemaDraft): void {
     this.selectedDraft = draft;
+    
+    // Synchronize config form with selectedDraft
+    const draftUrl = SchemaValidationService.draftNameToUrl(draft);
+    this.configForm.patchValue({ draftVersion: draftUrl }, { emitEvent: false });
+    
+    // Update schema builder configuration
+    const currentConfig = this.schemaBuilder.getConfiguration();
+    this.schemaBuilder.updateConfiguration({ ...currentConfig, draftVersion: draftUrl });
+    
     // Re-validate if we have results
     if (this.validationResult) {
       this.validateSchema();

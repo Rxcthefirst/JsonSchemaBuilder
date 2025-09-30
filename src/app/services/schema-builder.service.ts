@@ -7,8 +7,10 @@ import {
   SchemaFormData,
   ValidationRule,
   SchemaConfiguration,
-  DEFAULT_SCHEMA_CONFIG
+  DEFAULT_SCHEMA_CONFIG,
+  DRAFT_FEATURES
 } from '../models/schema.models';
+import { SchemaValidationService } from './schema-validation.service';
 
 @Injectable({
   providedIn: 'root'
@@ -58,6 +60,11 @@ export class SchemaBuilderService {
     const currentConfig = this.configurationSubject.value;
     const newConfig = { ...currentConfig, ...config };
     this.configurationSubject.next(newConfig);
+    
+    // Clean up properties for new draft if draft version changed
+    if (config.draftVersion && config.draftVersion !== currentConfig.draftVersion) {
+      this.cleanupPropertiesForDraft(config.draftVersion);
+    }
     
     // Regenerate schema with new configuration
     this.regenerateJsonSchema();
@@ -109,6 +116,78 @@ export class SchemaBuilderService {
       };
       this.addProperty(duplicatedProperty);
     }
+  }
+
+  private cleanupPropertiesForDraft(draftVersionUrl: string): void {
+    const draftName = SchemaValidationService.urlToDraftName(draftVersionUrl);
+    const supportedFeatures = DRAFT_FEATURES[draftName]?.supports || DRAFT_FEATURES['draft-07'].supports;
+    const exclusiveType = DRAFT_FEATURES[draftName]?.exclusiveMinimum as 'number' | 'boolean' || 'number';
+    
+    const currentProperties = this.propertiesSubject.value;
+    const cleanedProperties = currentProperties.map(prop => this.cleanupPropertyForDraft(prop, supportedFeatures, exclusiveType));
+    
+    this.propertiesSubject.next(cleanedProperties);
+  }
+
+  private cleanupPropertyForDraft(property: SchemaProperty, supportedFeatures: string[], exclusiveType: 'number' | 'boolean'): SchemaProperty {
+    const cleaned = { ...property };
+    
+    // Remove properties not supported in current draft
+    if (!supportedFeatures.includes('const')) {
+      delete (cleaned as any).const;
+    }
+    if (!supportedFeatures.includes('examples')) {
+      delete (cleaned as any).examples;
+    }
+    if (!supportedFeatures.includes('contentEncoding')) {
+      delete (cleaned as any).contentEncoding;
+    }
+    if (!supportedFeatures.includes('contentMediaType')) {
+      delete (cleaned as any).contentMediaType;
+    }
+    if (!supportedFeatures.includes('comment')) {
+      delete (cleaned as any).comment;
+    }
+    if (!supportedFeatures.includes('deprecated')) {
+      delete (cleaned as any).deprecated;
+    }
+    if (!supportedFeatures.includes('readOnly')) {
+      delete (cleaned as any).readOnly;
+    }
+    if (!supportedFeatures.includes('writeOnly')) {
+      delete (cleaned as any).writeOnly;
+    }
+
+    // Handle exclusive minimum/maximum type changes
+    if (exclusiveType === 'boolean') {
+      // Convert number to boolean or remove if not applicable
+      if (typeof (cleaned as any).exclusiveMinimum === 'number') {
+        delete (cleaned as any).exclusiveMinimum;
+      }
+      if (typeof (cleaned as any).exclusiveMaximum === 'number') {
+        delete (cleaned as any).exclusiveMaximum;
+      }
+    } else {
+      // Remove boolean exclusive properties
+      delete (cleaned as any).exclusiveMinimumBoolean;
+      delete (cleaned as any).exclusiveMaximumBoolean;
+    }
+
+    // Recursively clean nested properties
+    if (cleaned.properties) {
+      const nestedProperties: { [key: string]: SchemaProperty } = {};
+      for (const [key, nestedProp] of Object.entries(cleaned.properties)) {
+        nestedProperties[key] = this.cleanupPropertyForDraft(nestedProp, supportedFeatures, exclusiveType);
+      }
+      cleaned.properties = nestedProperties;
+    }
+
+    // Clean array items
+    if (cleaned.items) {
+      cleaned.items = this.cleanupPropertyForDraft(cleaned.items, supportedFeatures, exclusiveType);
+    }
+
+    return cleaned;
   }
 
   moveProperty(fromIndex: number, toIndex: number): void {
