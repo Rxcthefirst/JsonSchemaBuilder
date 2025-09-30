@@ -10,6 +10,14 @@
       "StackName": "amplify-jsonschemabuilder-dev-714f2",
       "StackId": "arn:aws:cloudformation:us-east-1:927971226220:stack/amplify-jsonschemabuilder-dev-714f2/08583d90-9e23-11f0-9f55-0affc06785ab",
       "AmplifyAppId": "d2jrw2fuxqxf52"
+    },
+    "categories": {
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d2jrw2fuxqxf52",
+          "type": "cicd"
+        }
+      }
     }
   }
 }

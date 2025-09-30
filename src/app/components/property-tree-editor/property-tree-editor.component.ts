@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { debounceTime } from 'rxjs/operators';
 import { 
   SchemaProperty, 
   PropertyType, 
@@ -162,8 +163,10 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
       this.previousType = newType;
     });
     
-    // Subscribe to all form changes to emit property updates
-    this.propertyForm.valueChanges.subscribe(() => {
+    // Subscribe to form changes with debouncing for name field
+    this.propertyForm.valueChanges.pipe(
+      debounceTime(300) // Debounce for 300ms to prevent excessive updates during typing
+    ).subscribe(() => {
       if (!this.isUpdatingForm) {
         this.updateProperty();
       }
@@ -223,9 +226,10 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
 
   private updateProperty(): void {
     const formValue = this.propertyForm.value;
+    
     const updatedProperty: SchemaProperty = {
       ...this.property,
-      name: formValue.name,
+      name: formValue.name || 'untitled', // Provide fallback for empty names
       type: formValue.type,
       title: formValue.title,
       description: formValue.description,
@@ -677,11 +681,49 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
       const index = this.getObjectProperties().findIndex(p => p.id === propertyId);
       if (index !== -1) {
         const oldName = this.getObjectProperties()[index].name;
-        delete this.property.properties[oldName];
-        this.property.properties[updatedProperty.name] = updatedProperty;
+        
+        // Validate new name to ensure it doesn't conflict with siblings
+        const validatedName = this.validateChildPropertyName(updatedProperty.name, propertyId);
+        
+        // Update the property with the validated name
+        const finalProperty = { ...updatedProperty, name: validatedName };
+        
+        // Only delete and recreate if the name actually changed
+        if (oldName !== validatedName) {
+          delete this.property.properties[oldName];
+        }
+        
+        this.property.properties[validatedName] = finalProperty;
         this.emitChange();
       }
     }
+  }
+
+  private validateChildPropertyName(newName: string, excludePropertyId: string): string {
+    if (!newName || newName.trim() === '') {
+      return 'untitled'; // Provide default name for empty strings
+    }
+
+    const trimmedName = newName.trim();
+    
+    if (this.property.type === PropertyType.OBJECT && this.property.properties) {
+      const siblingNames = this.getObjectProperties()
+        .filter(p => p.id !== excludePropertyId) // Exclude the property being updated
+        .map(p => p.name);
+      
+      if (siblingNames.includes(trimmedName)) {
+        // Generate a unique name by appending a number
+        let counter = 1;
+        let uniqueName = `${trimmedName}_${counter}`;
+        while (siblingNames.includes(uniqueName)) {
+          counter++;
+          uniqueName = `${trimmedName}_${counter}`;
+        }
+        return uniqueName;
+      }
+    }
+    
+    return trimmedName;
   }
 
   removeChildProperty(propertyId: string): void {
@@ -742,10 +784,12 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
     this.deleteProperty.emit();
   }
 
-  // Track function for ngFor
+  // Track function for ngFor - use ID instead of name to prevent re-rendering on name changes
   trackByPropertyName(index: number, property: SchemaProperty): string {
-    return property.name;
+    return property.id; // Use stable ID instead of mutable name
   }
+
+
 
   // Template helper methods for form bindings
   onNameChange(event: Event): void {
