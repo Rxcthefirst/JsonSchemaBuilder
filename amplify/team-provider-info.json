@@ -1,0 +1,15 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-jsonschemabuilder-dev-714f2-authRole",
+      "UnauthRoleArn": "arn:aws:iam::927971226220:role/amplify-jsonschemabuilder-dev-714f2-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::927971226220:role/amplify-jsonschemabuilder-dev-714f2-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-jsonschemabuilder-dev-714f2-deployment",
+      "UnauthRoleName": "amplify-jsonschemabuilder-dev-714f2-unauthRole",
+      "StackName": "amplify-jsonschemabuilder-dev-714f2",
+      "StackId": "arn:aws:cloudformation:us-east-1:927971226220:stack/amplify-jsonschemabuilder-dev-714f2/08583d90-9e23-11f0-9f55-0affc06785ab",
+      "AmplifyAppId": "d2jrw2fuxqxf52"
+    }
+  }
+}
