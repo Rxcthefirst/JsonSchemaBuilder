@@ -5,7 +5,7 @@
       <button type="button" 
               class="btn btn-sm btn-outline" 
               (click)="toggleView()"
-              *ngIf="!isInteractiveMode">
+              *ngIf="!isInteractiveMode && !showSampleMode">
         {{ showRawJson ? 'Show Summary' : 'Show JSON' }}
       </button>
       <button type="button" 
@@ -13,22 +13,144 @@
               [class.btn-primary]="isInteractiveMode"
               [class.btn-outline]="!isInteractiveMode"
               (click)="toggleInteractiveMode()"
-              *ngIf="enableInteractiveMode"
+              *ngIf="enableInteractiveMode && !showSampleMode"
               title="Toggle Interactive Editor">
         {{ isInteractiveMode ? '🎯 View Mode' : '✏️ Edit Mode' }}
       </button>
-      <button type="button" class="btn btn-sm btn-outline" (click)="copyToClipboard()">
-        Copy JSON
+      <button type="button" 
+              class="btn btn-sm" 
+              [class.btn-primary]="showSampleMode"
+              [class.btn-outline]="!showSampleMode"
+              (click)="toggleSampleMode()"
+              title="Generate Sample JSON Data">
+        {{ showSampleMode ? '📋 Schema Mode' : '🎲 Sample Mode' }}
       </button>
-      <button type="button" class="btn btn-sm btn-primary" (click)="downloadSchema()">
-        Download
+      <button type="button" 
+              class="btn btn-sm btn-outline" 
+              (click)="showSampleMode ? copySampleToClipboard() : copyToClipboard()">
+        {{ showSampleMode ? 'Copy Sample' : 'Copy JSON' }}
+      </button>
+      <button type="button" 
+              class="btn btn-sm btn-primary" 
+              (click)="showSampleMode ? downloadSample() : downloadSchema()">
+        {{ showSampleMode ? 'Download Sample' : 'Download Schema' }}
       </button>
     </div>
   </div>
 
   <div class="preview-content">
+    <!-- Sample JSON Generation Mode -->
+    <div class="sample-generator" *ngIf="showSampleMode">
+      <div class="sample-controls">
+        <div class="sample-options">
+          <h4>Sample Generation Options</h4>
+          <div class="options-grid">
+            <label class="option-item">
+              <input type="checkbox" [(ngModel)]="sampleOptions.includeOptionalProperties" (change)="updateSampleOptions()">
+              Include Optional Properties
+            </label>
+            <label class="option-item">
+              <input type="checkbox" [(ngModel)]="sampleOptions.useExampleValues" (change)="updateSampleOptions()">
+              Use Example Values
+            </label>
+            <label class="option-item">
+              <input type="checkbox" [(ngModel)]="sampleOptions.useDefaultValues" (change)="updateSampleOptions()">
+              Use Default Values
+            </label>
+            <label class="option-item">
+              <input type="checkbox" [(ngModel)]="sampleOptions.preferRealisticData" (change)="updateSampleOptions()">
+              Realistic Data
+            </label>
+          </div>
+          
+          <div class="numeric-options">
+            <div class="numeric-option">
+              <label>Array Items:</label>
+              <input type="number" [(ngModel)]="sampleOptions.arrayMinItems" min="0" max="10" (change)="updateSampleOptions()"> -
+              <input type="number" [(ngModel)]="sampleOptions.arrayMaxItems" min="1" max="20" (change)="updateSampleOptions()">
+            </div>
+            <div class="numeric-option">
+              <label>String Length:</label>
+              <input type="number" [(ngModel)]="sampleOptions.stringMinLength" min="1" max="50" (change)="updateSampleOptions()"> -
+              <input type="number" [(ngModel)]="sampleOptions.stringMaxLength" min="2" max="100" (change)="updateSampleOptions()">
+            </div>
+          </div>
+
+          <div class="generation-actions">
+            <button class="btn btn-sm btn-primary" (click)="generateSingleSample()" [disabled]="generatingSamples">
+              🎲 Generate Single Sample
+            </button>
+            <button class="btn btn-sm btn-outline" (click)="generateSamples(3)" [disabled]="generatingSamples">
+              🎯 Generate 3 Samples
+            </button>
+            <button class="btn btn-sm btn-outline" (click)="generateSamples(5)" [disabled]="generatingSamples">
+              🚀 Generate 5 Samples
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sample-results" *ngIf="sampleResults.length > 0">
+        <div class="sample-navigation">
+          <h4>Sample {{ currentSampleIndex + 1 }} of {{ sampleResults.length }}</h4>
+          <div class="sample-nav-buttons">
+            <button class="btn btn-sm btn-outline" (click)="prevSample()" [disabled]="currentSampleIndex === 0">
+              ← Previous
+            </button>
+            <button class="btn btn-sm btn-outline" (click)="nextSample()" [disabled]="currentSampleIndex === sampleResults.length - 1">
+              Next →
+            </button>
+          </div>
+        </div>
+
+        <div class="sample-content">
+          <pre class="sample-json"><code>{{ getCurrentSampleJson() }}</code></pre>
+        </div>
+
+        <div class="sample-metadata" *ngIf="getCurrentSample()?.metadata">
+          <h5>Generation Metadata</h5>
+          <div class="metadata-stats">
+            <span class="metadata-stat">
+              📊 {{ getCurrentSample()?.metadata?.propertiesGenerated || 0 }} properties generated
+            </span>
+            <span class="metadata-stat">
+              🔧 {{ getCurrentSample()?.metadata?.optionalPropertiesIncluded || 0 }} optional included
+            </span>
+            <span class="metadata-stat">
+              💡 {{ getCurrentSample()?.metadata?.examplesUsed || 0 }} examples used
+            </span>
+            <span class="metadata-stat">
+              🎯 {{ getCurrentSample()?.metadata?.defaultsUsed || 0 }} defaults used
+            </span>
+          </div>
+          
+          <div class="metadata-warnings" *ngIf="getCurrentSample()?.metadata?.warnings?.length">
+            <h6>Warnings:</h6>
+            <ul>
+              <li *ngFor="let warning of getCurrentSample()?.metadata?.warnings || []">{{ warning }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="sample-empty" *ngIf="sampleResults.length === 0 && !generatingSamples">
+        <div class="empty-state">
+          <div class="empty-icon">🎲</div>
+          <h3>Generate Sample JSON</h3>
+          <p>Create realistic sample data based on your schema to test and validate your JSON structure.</p>
+          <button class="btn btn-primary" (click)="generateSamples(3)">
+            Generate Sample Data
+          </button>
+        </div>
+      </div>
+
+      <div class="sample-loading" *ngIf="generatingSamples">
+        <div class="loading-spinner">⏳ Generating samples...</div>
+      </div>
+    </div>
+
     <!-- Interactive Monaco Editor Mode -->
-    <div class="interactive-editor" *ngIf="isInteractiveMode">
+    <div class="interactive-editor" *ngIf="isInteractiveMode && !showSampleMode">
       <div class="editor-info">
         <p class="editor-description">
           <strong>Interactive Mode:</strong> Edit the JSON Schema directly. Changes are synced automatically.
@@ -46,7 +168,7 @@
     </div>
 
     <!-- Traditional Summary View -->
-    <div class="schema-summary" *ngIf="!isInteractiveMode && !showRawJson">
+    <div class="schema-summary" *ngIf="!isInteractiveMode && !showRawJson && !showSampleMode">
       <div class="summary-stats">
         <div class="stat-item">
           <label>Title:</label>
@@ -104,7 +226,7 @@
     </div>
 
     <!-- Traditional JSON View -->
-    <div class="json-view" *ngIf="!isInteractiveMode && showRawJson">
+    <div class="json-view" *ngIf="!isInteractiveMode && showRawJson && !showSampleMode">
       <pre class="json-content"><code>{{ formattedJson }}</code></pre>
     </div>
   </div>

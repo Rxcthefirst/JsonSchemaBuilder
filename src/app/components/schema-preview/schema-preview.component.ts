@@ -1,11 +1,13 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { JsonSchema } from '../../models/schema.models';
 import { MonacoEditorComponent } from '../monaco-editor/monaco-editor.component';
+import { SampleDataGeneratorService, SampleGenerationOptions, SampleDataGenerationResult } from '../../services/sample-data-generator.service';
 
 @Component({
   selector: 'app-schema-preview',
-  imports: [CommonModule, MonacoEditorComponent],
+  imports: [CommonModule, FormsModule, MonacoEditorComponent],
   templateUrl: './schema-preview.component.html',
   styleUrl: './schema-preview.component.scss'
 })
@@ -17,6 +19,25 @@ export class SchemaPreviewComponent implements OnChanges {
   formattedJson = '';
   showRawJson = true;
   isInteractiveMode = false;
+  showSampleMode = false;
+  
+  // Sample generation state
+  sampleResults: SampleDataGenerationResult[] = [];
+  currentSampleIndex = 0;
+  generatingSamples = false;
+  sampleOptions: SampleGenerationOptions = {
+    includeOptionalProperties: true,
+    useExampleValues: true,
+    useDefaultValues: true,
+    arrayMinItems: 1,
+    arrayMaxItems: 3,
+    stringMinLength: 3,
+    stringMaxLength: 20,
+    objectMaxProperties: 10,
+    includeNullValues: false,
+    preferRealisticData: true,
+    locale: 'en'
+  };
   monacoOptions = {
     language: 'json',
     theme: 'vs' as const,
@@ -28,6 +49,8 @@ export class SchemaPreviewComponent implements OnChanges {
     formatOnPaste: true,
     formatOnType: true
   };
+
+  constructor(private sampleGenerator: SampleDataGeneratorService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['schema'] && this.schema) {
@@ -80,6 +103,113 @@ export class SchemaPreviewComponent implements OnChanges {
 
   toggleView(): void {
     this.showRawJson = !this.showRawJson;
+  }
+
+  toggleSampleMode(): void {
+    this.showSampleMode = !this.showSampleMode;
+    if (this.showSampleMode && this.sampleResults.length === 0) {
+      this.generateSamples();
+    }
+  }
+
+  // Sample generation methods
+  generateSamples(count: number = 3): void {
+    if (!this.schema) {
+      return;
+    }
+
+    this.generatingSamples = true;
+    
+    try {
+      this.sampleResults = this.sampleGenerator.generateMultipleSamples(
+        this.schema,
+        count,
+        this.sampleOptions
+      );
+      this.currentSampleIndex = 0;
+    } catch (error) {
+      console.error('Sample generation failed:', error);
+      this.sampleResults = [];
+    } finally {
+      this.generatingSamples = false;
+    }
+  }
+
+  generateSingleSample(): void {
+    if (!this.schema) {
+      return;
+    }
+
+    this.generatingSamples = true;
+    
+    try {
+      const result = this.sampleGenerator.generateSampleData(this.schema, this.sampleOptions);
+      this.sampleResults = [result];
+      this.currentSampleIndex = 0;
+    } catch (error) {
+      console.error('Sample generation failed:', error);
+      this.sampleResults = [];
+    } finally {
+      this.generatingSamples = false;
+    }
+  }
+
+  nextSample(): void {
+    if (this.currentSampleIndex < this.sampleResults.length - 1) {
+      this.currentSampleIndex++;
+    }
+  }
+
+  prevSample(): void {
+    if (this.currentSampleIndex > 0) {
+      this.currentSampleIndex--;
+    }
+  }
+
+  getCurrentSample(): SampleDataGenerationResult | null {
+    return this.sampleResults[this.currentSampleIndex] || null;
+  }
+
+  getCurrentSampleJson(): string {
+    const current = this.getCurrentSample();
+    return current ? JSON.stringify(current.sample, null, 2) : '';
+  }
+
+  copySampleToClipboard(): void {
+    const sampleJson = this.getCurrentSampleJson();
+    if (sampleJson) {
+      navigator.clipboard.writeText(sampleJson).then(() => {
+        console.log('Sample JSON copied to clipboard');
+        // Could show a toast notification here
+      }).catch(err => {
+        console.error('Failed to copy sample to clipboard:', err);
+      });
+    }
+  }
+
+  downloadSample(): void {
+    const current = this.getCurrentSample();
+    if (!current) {
+      return;
+    }
+
+    const sampleJson = JSON.stringify(current.sample, null, 2);
+    const blob = new Blob([sampleJson], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    const schemaTitle = this.schema?.title?.toLowerCase().replace(/\\s+/g, '-') || 'schema';
+    link.download = `${schemaTitle}-sample-${this.currentSampleIndex + 1}.json`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  updateSampleOptions(): void {
+    // Regenerate samples when options change
+    if (this.sampleResults.length > 0) {
+      this.generateSamples(this.sampleResults.length);
+    }
   }
 
   copyToClipboard(): void {

@@ -25,7 +25,7 @@ export class PropertyEditorComponent implements OnInit, OnDestroy {
   
   propertyForm!: FormGroup;
   propertyTypes = Object.values(PropertyType);
-  stringFormats = DEFAULT_STRING_FORMATS;
+  stringFormats = DEFAULT_STRING_FORMATS['draft-07'] || []; // Default to draft-07 formats
   validationRuleTypes = VALIDATION_RULE_TYPES;
   
   showAdvancedOptions = false;
