@@ -91,27 +91,54 @@
 
         <!-- Conditional Schema Editor -->
         <div class="conditional-schema">
-          <h5>Schema when condition is met:</h5>
-          <div class="basic-schema-editor">
-            <div class="field-group">
-              <label>Type:</label>
-              <select [(ngModel)]="rule.conditionalSchema.type" (change)="onConditionalSchemaChange(rule.id, rule.conditionalSchema)">
-                <option [value]="PropertyType.STRING">String</option>
-                <option [value]="PropertyType.NUMBER">Number</option>
-                <option [value]="PropertyType.INTEGER">Integer</option>
-                <option [value]="PropertyType.BOOLEAN">Boolean</option>
-                <option [value]="PropertyType.OBJECT">Object</option>
-                <option [value]="PropertyType.ARRAY">Array</option>
-              </select>
-            </div>
+          <h5>What should happen when the condition is met:</h5>
+          
+          <!-- Required Properties Section -->
+          <div class="then-section">
+            <h6>Required Properties</h6>
+            <p class="help-text">Select properties that become required when the condition is met:</p>
             
-            <div class="field-group">
-              <label>Description:</label>
-              <input 
-                type="text" 
-                [(ngModel)]="rule.conditionalSchema.description"
-                (input)="onConditionalSchemaChange(rule.id, rule.conditionalSchema)"
-                placeholder="Describe the conditional requirements">
+            <div class="required-properties">
+              <div class="property-checkboxes" *ngIf="availableProperties.length > 0">
+                <label *ngFor="let prop of availableProperties" class="property-checkbox">
+                  <input 
+                    type="checkbox" 
+                    [checked]="rule.requiredProperties.includes(prop)"
+                    (change)="toggleRequiredProperty(rule.id, prop, $any($event.target).checked)">
+                  <span>{{ prop }}</span>
+                </label>
+              </div>
+              
+              <div *ngIf="availableProperties.length === 0" class="no-properties">
+                <p>No properties available. Add properties to the schema first.</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Additional Schema Constraints -->
+          <div class="then-section">
+            <h6>Additional Schema Constraints (Optional)</h6>
+            <div class="basic-schema-editor">
+              <div class="field-group">
+                <label>Schema Type:</label>
+                <select [(ngModel)]="rule.conditionalSchema.type" (change)="onConditionalSchemaChange(rule.id, rule.conditionalSchema)">
+                  <option [value]="PropertyType.OBJECT">Object (default)</option>
+                  <option [value]="PropertyType.STRING">String</option>
+                  <option [value]="PropertyType.NUMBER">Number</option>
+                  <option [value]="PropertyType.INTEGER">Integer</option>
+                  <option [value]="PropertyType.BOOLEAN">Boolean</option>
+                  <option [value]="PropertyType.ARRAY">Array</option>
+                </select>
+              </div>
+              
+              <div class="field-group">
+                <label>Description:</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="rule.conditionalSchema.description"
+                  (input)="onConditionalSchemaChange(rule.id, rule.conditionalSchema)"
+                  placeholder="Describe additional constraints (optional)">
+              </div>
             </div>
           </div>
         </div>

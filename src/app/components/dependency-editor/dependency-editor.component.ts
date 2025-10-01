@@ -66,17 +66,31 @@ export class DependencyEditorComponent implements OnInit, OnChanges {
     // If the schema has if/then structure, extract the condition
     if (schema.if && schema.then) {
       const ifSchema = schema.if;
+      
       if (ifSchema.properties && ifSchema.properties[triggerProperty]) {
         const propCondition = ifSchema.properties[triggerProperty];
+        
         if (propCondition.const !== undefined) {
           triggerCondition = 'equals';
           triggerValue = propCondition.const;
         } else if (propCondition.enum !== undefined) {
           triggerCondition = 'in-array';
           triggerValue = propCondition.enum.join(', ');
+        } else if (propCondition.not !== undefined && propCondition.not.const !== undefined) {
+          triggerCondition = 'not-equals';
+          triggerValue = propCondition.not.const;
+        } else if (ifSchema.required && Array.isArray(ifSchema.required) && ifSchema.required.includes(triggerProperty)) {
+          triggerCondition = 'exists';
+          triggerValue = undefined;
         }
       }
       conditionalSchema = schema.then;
+    }
+
+    // Extract required properties from the then schema
+    let requiredProperties: string[] = [];
+    if (schema.then && (schema.then as any).required && Array.isArray((schema.then as any).required)) {
+      requiredProperties = [...(schema.then as any).required];
     }
 
     return {
@@ -84,7 +98,7 @@ export class DependencyEditorComponent implements OnInit, OnChanges {
       triggerProperty,
       triggerValue,
       triggerCondition,
-      requiredProperties: Array.isArray(conditionalSchema.required) ? conditionalSchema.required : [],
+      requiredProperties,
       conditionalSchema,
       description: schema.description
     };
@@ -160,11 +174,31 @@ export class DependencyEditorComponent implements OnInit, OnChanges {
     }
   }
 
+  toggleRequiredProperty(ruleId: string, propertyName: string, isRequired: boolean) {
+    const rule = this.dependencyRules.find(r => r.id === ruleId);
+    if (rule) {
+      console.log('🔄 Toggling required property:', propertyName, 'isRequired:', isRequired, 'for rule:', ruleId);
+      if (isRequired) {
+        if (!rule.requiredProperties.includes(propertyName)) {
+          rule.requiredProperties.push(propertyName);
+        }
+      } else {
+        const index = rule.requiredProperties.indexOf(propertyName);
+        if (index > -1) {
+          rule.requiredProperties.splice(index, 1);
+        }
+      }
+      console.log('📋 Rule requiredProperties after toggle:', rule.requiredProperties);
+      this.emitChanges();
+    }
+  }
+
   onConditionalSchemaChange(ruleId: string, updatedSchema: SchemaProperty) {
     const rule = this.dependencyRules.find(r => r.id === ruleId);
     if (rule) {
       rule.conditionalSchema = { ...updatedSchema };
-      rule.requiredProperties = updatedSchema.required ? Object.keys(updatedSchema.required) : [];
+      // Don't modify requiredProperties here - they should be managed separately
+      // The requiredProperties are for the dependency rule logic, not the conditional schema's required field
       this.emitChanges();
     }
   }
@@ -181,7 +215,24 @@ export class DependencyEditorComponent implements OnInit, OnChanges {
   }
 
   private buildSchemaFromRule(rule: DependencyRule): SchemaProperty {
-    const baseSchema = { ...rule.conditionalSchema };
+    // Build the "then" schema with required properties
+    const thenSchema: SchemaProperty = {
+      ...rule.conditionalSchema,
+      id: this.generateId(),
+      name: `then_${rule.triggerProperty}`,
+      type: PropertyType.OBJECT,
+      title: rule.conditionalSchema.title || `When ${rule.triggerProperty} condition is met`,
+      description: rule.conditionalSchema.description || '',
+      required: false,
+      validationRules: [],
+      properties: rule.conditionalSchema.properties || {}
+    };
+
+    // Add required properties to the then schema
+    if (rule.requiredProperties.length > 0) {
+      // Store required properties as a custom property that will be converted to JSON Schema
+      (thenSchema as any).requiredProperties = rule.requiredProperties;
+    }
 
     // Create the base conditional structure for all rule types
     const conditionalSchema: SchemaProperty = {
@@ -212,7 +263,7 @@ export class DependencyEditorComponent implements OnInit, OnChanges {
           }
         }
       },
-      then: baseSchema
+      then: thenSchema
     };
 
     // Apply the specific condition logic to the property
@@ -235,8 +286,9 @@ export class DependencyEditorComponent implements OnInit, OnChanges {
         }
         break;
       case 'exists':
-        // For existence check, the condition is handled in the conversion function
-        // by setting the required array. No additional property constraints needed.
+        // For existence check, we add a special marker that the conversion function will recognize
+        // The conversion function already handles this case when no const/enum/pattern is present
+        conditionalSchema.if!.name = 'if_condition_exists';
         break;
     }
 

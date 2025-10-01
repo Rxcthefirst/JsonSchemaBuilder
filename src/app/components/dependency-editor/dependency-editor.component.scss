@@ -269,3 +269,74 @@
     flex-direction: column;
   }
 }
+
+// Enhanced conditional schema styles
+.then-section {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  h6 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+  }
+
+  .help-text {
+    margin: 0 0 12px 0;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.4;
+  }
+}
+
+.required-properties {
+  .property-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    
+    .property-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #e9ecef;
+      }
+
+      input[type="checkbox"] {
+        margin: 0;
+        cursor: pointer;
+      }
+
+      input[type="checkbox"]:checked + span {
+        font-weight: 600;
+        color: #2196F3;
+      }
+    }
+  }
+
+  .no-properties {
+    padding: 12px;
+    text-align: center;
+    color: #666;
+    font-size: 12px;
+    background: #f8f8f8;
+    border-radius: 4px;
+  }
+}

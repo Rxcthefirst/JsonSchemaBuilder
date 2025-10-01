@@ -610,14 +610,25 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
         if (item.if.properties) {
           Object.keys(item.if.properties).forEach(conditionProp => {
             const condition = item.if.properties[conditionProp];
+            
+            // Handle different condition types
+            let key = conditionProp; // Default for 'exists' condition
+            
             if (condition.const !== undefined) {
-              const key = `${conditionProp}=${condition.const}`;
-              dependentSchemas[key] = {
-                if: item.if,
-                then: item.then,
-                else: item.else
-              };
+              key = conditionProp; // Use property name as key for all conditions
+            } else if (condition.enum !== undefined) {
+              key = conditionProp; // in-array condition
+            } else if (condition.not !== undefined) {
+              key = conditionProp; // not-equals condition
+            } else if (item.if.required && item.if.required.includes(conditionProp)) {
+              key = conditionProp; // exists condition
             }
+            
+            dependentSchemas[key] = {
+              if: item.if,
+              then: item.then,
+              else: item.else
+            };
           });
         }
       }
@@ -705,8 +716,35 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
       return prop;
     }
 
+    // Special handling for 'then' schemas with required properties
+    if (prop.name && prop.name.startsWith('then_')) {
+      console.log('🔍 Converting then schema:', prop.name, 'requiredProperties:', prop.requiredProperties);
+      const result: any = {
+        type: 'object'
+      };
+      
+      if (prop.requiredProperties && prop.requiredProperties.length > 0) {
+        result.required = [...prop.requiredProperties];
+        console.log('✅ Added required array to then schema:', result.required);
+      }
+      
+      if (prop.properties && Object.keys(prop.properties).length > 0) {
+        result.properties = {};
+        Object.keys(prop.properties).forEach(propKey => {
+          result.properties[propKey] = this.convertSchemaPropertyToJsonSchema(prop.properties[propKey]);
+        });
+      }
+      
+      if (prop.description) {
+        result.description = prop.description;
+      }
+      
+      console.log('📤 Final then result:', result);
+      return result;
+    }
+
     // Special handling for 'if' conditions
-    if (prop.name === 'if_condition' && prop.properties) {
+    if ((prop.name === 'if_condition' || prop.name === 'if_condition_exists') && prop.properties) {
       const result: any = {};
       
       // Extract the single property condition
@@ -719,7 +757,7 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
           [propertyName]: {}
         };
         
-        // Add the condition (const, enum, etc.)
+        // Add the condition (const, enum, not, etc.)
         if (propertySchema.const !== undefined) {
           result.properties[propertyName].const = propertySchema.const;
         }
@@ -729,9 +767,13 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
         if (propertySchema.pattern !== undefined) {
           result.properties[propertyName].pattern = propertySchema.pattern;
         }
+        if (propertySchema.not !== undefined) {
+          result.properties[propertyName].not = propertySchema.not;
+        }
         
         // For existence check, add required array
-        if (prop.name === 'if_condition' && !propertySchema.const && !propertySchema.enum && !propertySchema.pattern) {
+        const isExistenceCheck = !propertySchema.const && !propertySchema.enum && !propertySchema.pattern && !propertySchema.not;
+        if (isExistenceCheck) {
           result.required = [propertyName];
         }
       }
