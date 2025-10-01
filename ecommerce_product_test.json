@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/ecommerce-product",
+  "title": "E-commerce Product Schema",
+  "description": "A practical e-commerce product schema showcasing modern JSON Schema features",
+  "type": "object",
+  "properties": {
+    "productId": {
+      "type": "string",
+      "pattern": "^PRD-[A-Z0-9]{8}$",
+      "title": "Product ID",
+      "examples": ["PRD-AB123456", "PRD-XY789012"]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "title": "Product Name"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000,
+      "title": "Product Description"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["electronics", "clothing", "books", "home", "sports", "toys"],
+      "title": "Product Category"
+    },
+    "pricing": {
+      "type": "object",
+      "title": "Pricing Information",
+      "properties": {
+        "basePrice": {
+          "type": "number",
+          "minimum": 0.01,
+          "multipleOf": 0.01,
+          "title": "Base Price"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "examples": ["USD", "EUR", "GBP", "JPY"],
+          "title": "Currency Code"
+        },
+        "discount": {
+          "type": "object",
+          "properties": {
+            "percentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "validUntil": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["basePrice", "currency"],
+      "additionalProperties": false
+    },
+    "variants": {
+      "type": "array",
+      "title": "Product Variants",
+      "prefixItems": [
+        {
+          "type": "object",
+          "title": "Default Variant",
+          "properties": {
+            "sku": { "type": "string", "pattern": "^SKU-[A-Z0-9]{10}$" },
+            "color": { "type": "string" },
+            "size": { "type": "string" },
+            "stock": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["sku", "stock"]
+        }
+      ],
+      "unevaluatedItems": {
+        "type": "object",
+        "properties": {
+          "sku": { "type": "string", "pattern": "^SKU-[A-Z0-9]{10}$" },
+          "color": { "type": "string" },
+          "size": { "type": "string" },
+          "stock": { "type": "integer", "minimum": 0 },
+          "priceAdjustment": { "type": "number" }
+        },
+        "required": ["sku", "stock"]
+      },
+      "minItems": 1,
+      "maxItems": 20
+    },
+    "specifications": {
+      "type": "object",
+      "title": "Technical Specifications",
+      "dependentSchemas": {
+        "category": {
+          "if": {
+            "properties": { "category": { "const": "electronics" } }
+          },
+          "then": {
+            "properties": {
+              "brand": { "type": "string", "minLength": 1 },
+              "model": { "type": "string", "minLength": 1 },
+              "warranty": {
+                "type": "object",
+                "properties": {
+                  "duration": { "type": "integer", "minimum": 1 },
+                  "unit": { "type": "string", "enum": ["months", "years"] }
+                },
+                "required": ["duration", "unit"]
+              }
+            },
+            "required": ["brand", "model"]
+          }
+        }
+      },
+      "unevaluatedProperties": true
+    },
+    "shipping": {
+      "type": "object",
+      "oneOf": [
+        {
+          "title": "Standard Shipping",
+          "properties": {
+            "type": { "const": "standard" },
+            "weight": { "type": "number", "minimum": 0 },
+            "dimensions": {
+              "type": "object",
+              "properties": {
+                "length": { "type": "number", "minimum": 0 },
+                "width": { "type": "number", "minimum": 0 },
+                "height": { "type": "number", "minimum": 0 }
+              },
+              "required": ["length", "width", "height"]
+            }
+          },
+          "required": ["type", "weight", "dimensions"]
+        },
+        {
+          "title": "Digital Delivery",
+          "properties": {
+            "type": { "const": "digital" },
+            "downloadLink": { "type": "string", "format": "uri" },
+            "license": { "type": "string" }
+          },
+          "required": ["type", "downloadLink"]
+        }
+      ]
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "reviewId": { "type": "string" },
+          "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "comment": { "type": "string", "maxLength": 1000 },
+          "reviewer": { "type": "string" },
+          "reviewDate": { "type": "string", "format": "date" },
+          "verified": { "type": "boolean", "default": false }
+        },
+        "required": ["reviewId", "rating", "reviewer", "reviewDate"]
+      },
+      "maxItems": 100
+    }
+  },
+  "required": ["productId", "name", "category", "pricing", "variants"],
+  "additionalProperties": false,
+  "if": {
+    "properties": {
+      "category": { "const": "clothing" }
+    }
+  },
+  "then": {
+    "properties": {
+      "sizeChart": {
+        "type": "object",
+        "patternProperties": {
+          "^(XS|S|M|L|XL|XXL)$": {
+            "type": "object",
+            "properties": {
+              "chest": { "type": "number" },
+              "waist": { "type": "number" },
+              "length": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "positiveNumber": {
+      "type": "number",
+      "minimum": 0
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

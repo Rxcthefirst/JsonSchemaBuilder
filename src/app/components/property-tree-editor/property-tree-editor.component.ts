@@ -12,6 +12,11 @@ import {
   VALIDATION_RULE_TYPES 
 } from '../../models/schema.models';
 import { SchemaValidationService } from '../../services/schema-validation.service';
+import { OneOfEditorComponent } from '../oneof-editor/oneof-editor.component';
+import { DependencyEditorComponent } from '../dependency-editor/dependency-editor.component';
+import { PatternPropertiesEditorComponent } from '../pattern-properties-editor/pattern-properties-editor.component';
+import { AdvancedArrayEditorComponent } from '../advanced-array-editor/advanced-array-editor.component';
+import { ReferenceManagerComponent } from '../reference-manager/reference-manager.component';
 
 export interface PropertyTreeNode {
   property: SchemaProperty;
@@ -24,7 +29,7 @@ export interface PropertyTreeNode {
 
 @Component({
   selector: 'app-property-tree-editor',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, OneOfEditorComponent, DependencyEditorComponent, PatternPropertiesEditorComponent, AdvancedArrayEditorComponent, ReferenceManagerComponent],
   templateUrl: './property-tree-editor.component.html',
   styleUrl: './property-tree-editor.component.scss'
 })
@@ -32,8 +37,12 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
   @Input() property!: SchemaProperty;
   @Input() level: number = 0;
   @Input() currentDraft: string = 'draft-07'; // Draft awareness
+  @Input() rootDefinitions: { [key: string]: SchemaProperty } | null = null;
+  @Input() rootSchemaProperty: SchemaProperty | null = null;
   @Output() propertyChange = new EventEmitter<SchemaProperty>();
   @Output() deleteProperty = new EventEmitter<void>();
+  @Output() definitionsUpdate = new EventEmitter<{ [key: string]: SchemaProperty }>();
+  @Output() propertyReferenceUpdate = new EventEmitter<{ property: SchemaProperty; ref: string }>();
 
   propertyForm!: FormGroup;
   propertyTypes = Object.values(PropertyType);
@@ -598,7 +607,14 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
 
   // Nesting management
   hasChildren(): boolean {
-    return this.isObjectType() || this.isArrayType();
+    if (this.isArrayType()) return true;
+    
+    if (this.isObjectType()) {
+      // Check if there are any child properties in direct properties, oneOf, dependentSchemas, or conditionals
+      return this.getObjectProperties().length > 0;
+    }
+    
+    return false;
   }
 
   canAddChildren(): boolean {
@@ -649,8 +665,62 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
 
   // Object property management
   getObjectProperties(): SchemaProperty[] {
-    if (!this.property.properties) return [];
-    return Object.keys(this.property.properties).map(key => this.property.properties![key]);
+    const properties: SchemaProperty[] = [];
+    
+    // Get direct properties
+    if (this.property.properties) {
+      properties.push(...Object.keys(this.property.properties).map(key => this.property.properties![key]));
+    }
+    
+    // Get properties from oneOf schemas
+    if (this.property.oneOf && Array.isArray(this.property.oneOf)) {
+      this.property.oneOf.forEach((schema, index) => {
+        if (schema.properties) {
+          Object.keys(schema.properties).forEach(key => {
+            // Check if property already exists to avoid duplicates
+            if (!properties.find(p => p.name === key)) {
+              const prop = { ...schema.properties![key] };
+              prop.title = prop.title || `${key} (oneOf variant ${index + 1})`;
+              properties.push(prop);
+            }
+          });
+        }
+      });
+    }
+    
+    // Get properties from dependentSchemas
+    if (this.property.dependentSchemas) {
+      Object.keys(this.property.dependentSchemas).forEach(dependentKey => {
+        const schema = this.property.dependentSchemas![dependentKey];
+        if (schema.properties) {
+          Object.keys(schema.properties).forEach(key => {
+            // Check if property already exists to avoid duplicates
+            if (!properties.find(p => p.name === key)) {
+              const prop = { ...schema.properties![key] };
+              prop.title = prop.title || `${key} (when ${dependentKey} present)`;
+              properties.push(prop);
+            }
+          });
+        }
+      });
+    }
+    
+    // Get properties from if/then/else schemas
+    const conditionalSchemas = [this.property.if, this.property.then, this.property.else].filter(Boolean);
+    conditionalSchemas.forEach((schema, index) => {
+      if (schema && schema.properties) {
+        Object.keys(schema.properties).forEach(key => {
+          if (!properties.find(p => p.name === key)) {
+            const prop = { ...schema.properties![key] };
+            const labels = ['condition', 'then', 'else'];
+            prop.title = prop.title || `${key} (${labels[index] || 'conditional'})`;
+            properties.push(prop);
+          }
+        });
+      }
+    });
+    
+    return properties;
   }
 
   addObjectProperty(): void {
@@ -871,5 +941,150 @@ export class PropertyTreeEditorComponent implements OnInit, OnChanges {
     
     this.propertyForm.get('type')?.setValue(newType);
     this.previousType = newType;
+  }
+
+  // OneOf Editor integration
+  updateOneOfVariants(variants: SchemaProperty[]): void {
+    this.property.oneOf = variants;
+    this.updateProperty();
+    this.emitChange();
+  }
+
+  // Dependency Editor integration
+  updateDependentSchemas(dependentSchemas: { [key: string]: SchemaProperty }): void {
+    this.property.dependentSchemas = Object.keys(dependentSchemas).length > 0 ? dependentSchemas : undefined;
+    this.updateProperty();
+    this.emitChange();
+  }
+
+  // Pattern Properties Editor integration
+  updatePatternProperties(patternProperties: { [key: string]: SchemaProperty }): void {
+    this.property.patternProperties = Object.keys(patternProperties).length > 0 ? patternProperties : undefined;
+    this.updateProperty();
+    this.emitChange();
+  }
+
+  // Advanced Array Editor integration
+  updatePrefixItems(prefixItems: SchemaProperty[]): void {
+    this.property.prefixItems = prefixItems.length > 0 ? prefixItems : undefined;
+    this.updateProperty();
+    this.emitChange();
+  }
+
+  updateUnevaluatedItems(unevaluatedItems: SchemaProperty | boolean): void {
+    this.property.unevaluatedItems = unevaluatedItems;
+    this.updateProperty();
+    this.emitChange();
+  }
+
+  updateArrayItems(items: SchemaProperty | boolean): void {
+    // Handle boolean case by setting to undefined if false, or converting to schema if true
+    if (typeof items === 'boolean') {
+      if (items) {
+        // Create a permissive schema when items is true
+        this.property.items = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: 'item',
+          type: PropertyType.STRING,
+          required: false,
+          description: 'Array item',
+          validationRules: []
+        };
+      } else {
+        this.property.items = undefined; // No items allowed
+      }
+    } else {
+      this.property.items = items;
+    }
+    this.updateProperty();
+    this.emitChange();
+  }
+
+  // Reference Manager integration
+  updateDefinitions(definitions: { [key: string]: SchemaProperty }): void {
+    this.definitionsUpdate.emit(definitions);
+  }
+
+  updatePropertyReference(event: { property: SchemaProperty; ref: string }): void {
+    if (event.ref) {
+      event.property.$ref = event.ref;
+      // Clear other properties when using a reference
+      event.property.type = PropertyType.STRING; // Reset to default
+      delete event.property.properties;
+      delete event.property.items;
+    } else {
+      delete event.property.$ref;
+    }
+    this.propertyReferenceUpdate.emit(event);
+    this.updateProperty();
+    this.emitChange();
+  }
+
+  getAvailablePropertiesForDependencies(): string[] {
+    const allProperties: string[] = [];
+    
+    // Get properties from this object
+    if (this.property.properties) {
+      allProperties.push(...Object.keys(this.property.properties));
+    }
+    
+    // Get properties from oneOf variants
+    if (this.property.oneOf) {
+      this.property.oneOf.forEach(variant => {
+        if (variant.properties) {
+          allProperties.push(...Object.keys(variant.properties));
+        }
+      });
+    }
+    
+    // Remove duplicates and return
+    return [...new Set(allProperties)].sort();
+  }
+
+  createVisualOneOf(): void {
+    // Try to parse existing JSON in the textarea first
+    const oneOfFormValue = this.propertyForm.get('oneOf')?.value;
+    let initialVariants: SchemaProperty[] = [];
+
+    if (oneOfFormValue && oneOfFormValue.trim()) {
+      try {
+        const parsed = JSON.parse(oneOfFormValue);
+        if (Array.isArray(parsed)) {
+          initialVariants = parsed.map((schema: any, index: number) => ({
+            id: this.generateId(),
+            name: `variant_${index}`,
+            type: schema.type || PropertyType.OBJECT,
+            title: schema.title || `Variant ${index + 1}`,
+            description: schema.description || '',
+            required: false,
+            validationRules: [],
+            ...schema
+          }));
+        }
+      } catch (error) {
+        console.warn('Could not parse existing oneOf JSON, creating default variants');
+      }
+    }
+
+    // Create default variants if none exist
+    if (initialVariants.length === 0) {
+      initialVariants = [
+        {
+          id: this.generateId(),
+          name: 'variant_1',
+          type: PropertyType.OBJECT,
+          title: 'Variant 1',
+          description: '',
+          required: false,
+          validationRules: [],
+          properties: {}
+        }
+      ];
+    }
+
+    this.property.oneOf = initialVariants;
+    this.propertyForm.get('oneOf')?.setValue(''); // Clear the textarea
+    this.updateProperty();
+    this.emitChange();
   }
 }

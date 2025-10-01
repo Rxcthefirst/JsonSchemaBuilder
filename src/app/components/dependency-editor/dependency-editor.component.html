@@ -1,0 +1,188 @@
+<div class="dependency-editor">
+  <div class="dependency-header">
+    <h4>Dependent Schemas</h4>
+    <p class="header-description">Define conditional schema rules based on property values</p>
+  </div>
+
+  <!-- Existing Dependency Rules -->
+  <div class="dependency-rules" *ngIf="dependencyRules.length > 0">
+    <div 
+      *ngFor="let rule of dependencyRules" 
+      class="dependency-rule"
+      [class.editing]="editingRuleId === rule.id">
+      
+      <div class="rule-header">
+        <div class="rule-summary">
+          <strong>{{ getRuleDescription(rule) }}</strong>
+          <span class="rule-description" *ngIf="rule.description">- {{ rule.description }}</span>
+        </div>
+        
+        <div class="rule-actions">
+          <button 
+            type="button" 
+            class="btn-edit"
+            (click)="startEditingRule(rule.id)"
+            *ngIf="editingRuleId !== rule.id"
+            title="Edit rule">
+            ✏️
+          </button>
+          <button 
+            type="button" 
+            class="btn-done"
+            (click)="stopEditingRule()"
+            *ngIf="editingRuleId === rule.id"
+            title="Done editing">
+            ✓
+          </button>
+          <button 
+            type="button" 
+            class="btn-remove"
+            (click)="removeDependencyRule(rule.id)"
+            title="Remove rule">
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <!-- Rule Configuration (when editing) -->
+      <div class="rule-config" *ngIf="editingRuleId === rule.id">
+        <div class="config-row">
+          <div class="config-field">
+            <label>Trigger Property:</label>
+            <select 
+              [value]="rule.triggerProperty"
+              (change)="updateRuleTriggerProperty(rule.id, $any($event.target).value)">
+              <option value="">Select property...</option>
+              <option *ngFor="let prop of availableProperties" [value]="prop">{{ prop }}</option>
+            </select>
+          </div>
+
+          <div class="config-field">
+            <label>Condition:</label>
+            <select 
+              [value]="rule.triggerCondition"
+              (change)="updateRuleTriggerCondition(rule.id, $any($event.target).value)">
+              <option *ngFor="let condition of triggerConditions" [value]="condition.value">
+                {{ condition.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="config-field" *ngIf="getTriggerCondition(rule.triggerCondition).needsValue">
+            <label>Value:</label>
+            <input 
+              type="text" 
+              [value]="rule.triggerValue || ''"
+              (input)="updateRuleTriggerValue(rule.id, $any($event.target).value)"
+              placeholder="Enter value or comma-separated values">
+          </div>
+        </div>
+
+        <div class="config-row">
+          <div class="config-field full-width">
+            <label>Description (optional):</label>
+            <input 
+              type="text" 
+              [value]="rule.description || ''"
+              (input)="updateRuleDescription(rule.id, $any($event.target).value)"
+              placeholder="Describe when this rule applies">
+          </div>
+        </div>
+
+        <!-- Conditional Schema Editor -->
+        <div class="conditional-schema">
+          <h5>Schema when condition is met:</h5>
+          <div class="basic-schema-editor">
+            <div class="field-group">
+              <label>Type:</label>
+              <select [(ngModel)]="rule.conditionalSchema.type" (change)="onConditionalSchemaChange(rule.id, rule.conditionalSchema)">
+                <option [value]="PropertyType.STRING">String</option>
+                <option [value]="PropertyType.NUMBER">Number</option>
+                <option [value]="PropertyType.INTEGER">Integer</option>
+                <option [value]="PropertyType.BOOLEAN">Boolean</option>
+                <option [value]="PropertyType.OBJECT">Object</option>
+                <option [value]="PropertyType.ARRAY">Array</option>
+              </select>
+            </div>
+            
+            <div class="field-group">
+              <label>Description:</label>
+              <input 
+                type="text" 
+                [(ngModel)]="rule.conditionalSchema.description"
+                (input)="onConditionalSchemaChange(rule.id, rule.conditionalSchema)"
+                placeholder="Describe the conditional requirements">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add New Rule Form -->
+  <div class="add-rule-section">
+    <button 
+      type="button" 
+      class="btn-add-rule"
+      (click)="toggleAddRule()"
+      *ngIf="!showAddRule">
+      + Add Dependency Rule
+    </button>
+
+    <div class="add-rule-form" *ngIf="showAddRule">
+      <h5>Create New Dependency Rule</h5>
+      
+      <div class="form-row">
+        <div class="form-field">
+          <label>Trigger Property:</label>
+          <select [(ngModel)]="newRuleTriggerProperty">
+            <option value="">Select property...</option>
+            <option *ngFor="let prop of availableProperties" [value]="prop">{{ prop }}</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label>Condition:</label>
+          <select [(ngModel)]="newRuleTriggerCondition">
+            <option *ngFor="let condition of triggerConditions" [value]="condition.value">
+              {{ condition.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-field" *ngIf="getTriggerCondition(newRuleTriggerCondition).needsValue">
+          <label>Value:</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newRuleTriggerValue"
+            placeholder="Enter value">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button 
+          type="button" 
+          class="btn btn-primary"
+          (click)="addDependencyRule()"
+          [disabled]="!newRuleTriggerProperty.trim()">
+          Create Rule
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-secondary"
+          (click)="toggleAddRule()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="dependencyRules.length === 0 && !showAddRule">
+    <p>No dependency rules defined.</p>
+    <p class="help-text">Dependency rules allow you to require certain properties or apply specific schemas based on the values of other properties.</p>
+    <button type="button" class="btn btn-primary" (click)="toggleAddRule()">
+      Add First Rule
+    </button>
+  </div>
+</div>

@@ -371,11 +371,73 @@
         placeholder="anyOf schemas (JSON array)"
         rows="2"
         title="Must match at least one schema"></textarea>
-      <textarea 
-        formControlName="oneOf"
-        placeholder="oneOf schemas (JSON array)"
-        rows="2"
-        title="Must match exactly one schema"></textarea>
+      
+      <!-- Visual OneOf Editor -->
+      <div class="oneof-container" *ngIf="property.oneOf && property.oneOf.length > 0">
+        <app-oneof-editor
+          [variants]="property.oneOf"
+          [currentDraft]="currentDraft"
+          (variantsChange)="updateOneOfVariants($event)">
+        </app-oneof-editor>
+      </div>
+      
+      <!-- Fallback textarea for oneOf (when no variants exist) -->
+      <div *ngIf="!property.oneOf || property.oneOf.length === 0" class="oneof-fallback">
+        <textarea 
+          formControlName="oneOf"
+          placeholder="oneOf schemas (JSON array)"
+          rows="2"
+          title="Must match exactly one schema"></textarea>
+        <button 
+          type="button" 
+          class="btn-visual-editor"
+          (click)="createVisualOneOf()"
+          title="Switch to visual OneOf editor">
+          🎨 Use Visual Editor
+        </button>
+      </div>
+
+      <!-- Advanced Features -->
+      <div class="dependent-schemas-section" *ngIf="property.type === PropertyType.OBJECT">
+        <app-dependency-editor
+          [dependentSchemas]="property.dependentSchemas || {}"
+          [availableProperties]="getAvailablePropertiesForDependencies()"
+          [currentDraft]="currentDraft"
+          (dependentSchemasChange)="updateDependentSchemas($event)">
+        </app-dependency-editor>
+      </div>
+
+      <div class="pattern-properties-section" *ngIf="property.type === PropertyType.OBJECT">
+        <app-pattern-properties-editor
+          [patternProperties]="property.patternProperties || {}"
+          [currentDraft]="currentDraft"
+          (patternPropertiesChange)="updatePatternProperties($event)">
+        </app-pattern-properties-editor>
+      </div>
+
+      <div class="advanced-array-section" *ngIf="property.type === PropertyType.ARRAY">
+        <app-advanced-array-editor
+          [prefixItems]="property.prefixItems || []"
+          [unevaluatedItems]="property.unevaluatedItems || true"
+          [items]="property.items || true"
+          [currentDraft]="currentDraft"
+          (prefixItemsChange)="updatePrefixItems($event)"
+          (unevaluatedItemsChange)="updateUnevaluatedItems($event)"
+          (itemsChange)="updateArrayItems($event)">
+        </app-advanced-array-editor>
+      </div>
+
+      <div class="reference-manager-section">
+        <app-reference-manager
+          [definitions]="{}"
+          [currentProperty]="property"
+          [currentDraft]="currentDraft"
+          [rootSchema]="null"
+          (definitionsChange)="updateDefinitions($event)"
+          (propertyRefUpdate)="updatePropertyReference($event)">
+        </app-reference-manager>
+      </div>
+        
       <textarea 
         formControlName="not"
         placeholder="not schema (JSON Schema)"

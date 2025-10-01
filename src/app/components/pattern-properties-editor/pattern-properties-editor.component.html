@@ -1,0 +1,227 @@
+<div class="pattern-properties-editor">
+  <div class="pattern-header">
+    <h4>Pattern Properties</h4>
+    <p class="header-description">Define schemas for properties matching specific regex patterns</p>
+  </div>
+
+  <!-- Existing Pattern Properties -->
+  <div class="pattern-properties" *ngIf="patterns.length > 0">
+    <div 
+      *ngFor="let pattern of patterns" 
+      class="pattern-property"
+      [class.editing]="editingPatternId === pattern.id"
+      [class.invalid]="!pattern.isValid">
+      
+      <div class="pattern-header-row">
+        <div class="pattern-info">
+          <div class="pattern-regex" [class.invalid]="!pattern.isValid">
+            <code>{{ pattern.pattern }}</code>
+            <span class="error-icon" *ngIf="!pattern.isValid" title="{{ pattern.errorMessage }}">⚠️</span>
+          </div>
+          <div class="pattern-description" *ngIf="pattern.description">{{ pattern.description }}</div>
+          <div class="pattern-examples" *ngIf="pattern.examples.length > 0">
+            <strong>Examples:</strong>
+            <span *ngFor="let example of pattern.examples; let last = last" class="example">
+              {{ example }}<span *ngIf="!last">, </span>
+            </span>
+          </div>
+        </div>
+        
+        <div class="pattern-actions">
+          <button 
+            type="button" 
+            class="btn-edit"
+            (click)="startEditingPattern(pattern.id)"
+            *ngIf="editingPatternId !== pattern.id"
+            title="Edit pattern">
+            ✏️
+          </button>
+          <button 
+            type="button" 
+            class="btn-done"
+            (click)="stopEditingPattern()"
+            *ngIf="editingPatternId === pattern.id"
+            title="Done editing">
+            ✓
+          </button>
+          <button 
+            type="button" 
+            class="btn-remove"
+            (click)="removePattern(pattern.id)"
+            title="Remove pattern">
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <!-- Pattern Configuration (when editing) -->
+      <div class="pattern-config" *ngIf="editingPatternId === pattern.id">
+        <div class="config-row">
+          <div class="config-field">
+            <label>Regex Pattern:</label>
+            <input 
+              type="text" 
+              class="pattern-input"
+              [value]="pattern.pattern"
+              (input)="updatePattern(pattern.id, $any($event.target).value)"
+              placeholder="^[a-zA-Z0-9]+$">
+            <div class="validation-message" 
+                 *ngIf="!getPatternValidation(pattern.pattern).isValid"
+                 [innerText]="getPatternValidation(pattern.pattern).errorMessage">
+            </div>
+          </div>
+
+          <div class="config-field">
+            <label>Description:</label>
+            <input 
+              type="text" 
+              [value]="pattern.description"
+              (input)="updatePatternDescription(pattern.id, $any($event.target).value)"
+              placeholder="Describe what this pattern matches">
+          </div>
+        </div>
+
+        <!-- Pattern Tester -->
+        <div class="pattern-tester" *ngIf="pattern.isValid">
+          <label>Test Pattern:</label>
+          <div class="tester-row">
+            <input 
+              type="text" 
+              [(ngModel)]="testString"
+              placeholder="Enter text to test against pattern">
+            <span class="test-result" 
+                  [class.match]="testPatternMatch(pattern.pattern, testString)"
+                  [class.no-match]="testString && !testPatternMatch(pattern.pattern, testString)">
+              <span *ngIf="!testString">Enter text to test</span>
+              <span *ngIf="testString && testPatternMatch(pattern.pattern, testString)">✓ Match</span>
+              <span *ngIf="testString && !testPatternMatch(pattern.pattern, testString)">✗ No match</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Schema Editor for Pattern -->
+        <div class="pattern-schema">
+          <h5>Schema for matching properties:</h5>
+          <div class="basic-schema-editor">
+            <div class="field-group">
+              <label>Type:</label>
+              <select [(ngModel)]="pattern.schema.type" (change)="onPatternSchemaChange(pattern.id, pattern.schema)">
+                <option [value]="PropertyType.STRING">String</option>
+                <option [value]="PropertyType.NUMBER">Number</option>
+                <option [value]="PropertyType.INTEGER">Integer</option>
+                <option [value]="PropertyType.BOOLEAN">Boolean</option>
+                <option [value]="PropertyType.OBJECT">Object</option>
+                <option [value]="PropertyType.ARRAY">Array</option>
+              </select>
+            </div>
+            
+            <div class="field-group">
+              <label>Description:</label>
+              <input 
+                type="text" 
+                [(ngModel)]="pattern.schema.description"
+                (input)="onPatternSchemaChange(pattern.id, pattern.schema)"
+                placeholder="Describe properties that match this pattern">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add New Pattern Form -->
+  <div class="add-pattern-section">
+    <button 
+      type="button" 
+      class="btn-add-pattern"
+      (click)="toggleAddPattern()"
+      *ngIf="!showAddPattern">
+      + Add Pattern Property
+    </button>
+
+    <div class="add-pattern-form" *ngIf="showAddPattern">
+      <h5>Create New Pattern Property</h5>
+      
+      <!-- Common Patterns Quick Select -->
+      <div class="common-patterns">
+        <label>Quick Select:</label>
+        <div class="common-pattern-buttons">
+          <button 
+            *ngFor="let common of commonPatterns" 
+            type="button"
+            class="btn-common-pattern"
+            (click)="useCommonPattern(common)"
+            title="{{ common.description }}">
+            {{ common.name }}
+          </button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Regex Pattern:</label>
+          <input 
+            type="text" 
+            class="pattern-input"
+            [(ngModel)]="newPatternRegex"
+            placeholder="^[a-zA-Z0-9]+$">
+          <div class="validation-message" 
+               *ngIf="newPatternRegex && !newPatternValidation.isValid"
+               [innerText]="newPatternValidation.errorMessage">
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Description:</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newPatternDescription"
+            placeholder="Describe what this pattern matches">
+        </div>
+      </div>
+
+      <!-- New Pattern Tester -->
+      <div class="pattern-tester" *ngIf="newPatternRegex && newPatternValidation.isValid">
+        <label>Test New Pattern:</label>
+        <div class="tester-row">
+          <input 
+            type="text" 
+            [(ngModel)]="testString"
+            placeholder="Enter text to test">
+          <span class="test-result" 
+                [class.match]="testPatternMatch(newPatternRegex, testString)"
+                [class.no-match]="testString && !testPatternMatch(newPatternRegex, testString)">
+            <span *ngIf="!testString">Enter text to test</span>
+            <span *ngIf="testString && testPatternMatch(newPatternRegex, testString)">✓ Match</span>
+            <span *ngIf="testString && !testPatternMatch(newPatternRegex, testString)">✗ No match</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button 
+          type="button" 
+          class="btn btn-primary"
+          (click)="addPattern()"
+          [disabled]="!newPatternRegex.trim() || !newPatternValidation.isValid">
+          Create Pattern
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-secondary"
+          (click)="toggleAddPattern()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="patterns.length === 0 && !showAddPattern">
+    <p>No pattern properties defined.</p>
+    <p class="help-text">Pattern properties allow you to define schemas for object properties that match specific regex patterns, enabling flexible and dynamic object structures.</p>
+    <button type="button" class="btn btn-primary" (click)="toggleAddPattern()">
+      Add First Pattern
+    </button>
+  </div>
+</div>

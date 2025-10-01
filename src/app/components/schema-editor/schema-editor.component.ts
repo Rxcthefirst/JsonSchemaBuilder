@@ -5,9 +5,10 @@ import { Subject, takeUntil } from 'rxjs';
 import { PropertyTreeEditorComponent } from '../property-tree-editor/property-tree-editor.component';
 import { SchemaPreviewComponent } from '../schema-preview/schema-preview.component';
 import { CytoscapeDiagramComponent } from '../cytoscape-diagram/cytoscape-diagram.component';
+import { DependencyEditorComponent } from '../dependency-editor/dependency-editor.component';
 import { SchemaBuilderService } from '../../services/schema-builder.service';
 import { SchemaValidationService, ValidationResult, JsonSchemaDraft } from '../../services/schema-validation.service';
-import { SchemaProperty, JsonSchema, PropertyType, SchemaConfiguration } from '../../models/schema.models';
+import { SchemaProperty, JsonSchema, PropertyType, SchemaConfiguration, getIdFieldForDraft } from '../../models/schema.models';
 
 @Component({
   selector: 'app-schema-editor',
@@ -17,7 +18,8 @@ import { SchemaProperty, JsonSchema, PropertyType, SchemaConfiguration } from '.
     ReactiveFormsModule,
     PropertyTreeEditorComponent,
     SchemaPreviewComponent,
-    CytoscapeDiagramComponent
+    CytoscapeDiagramComponent,
+    DependencyEditorComponent
   ],
   templateUrl: './schema-editor.component.html',
   styleUrl: './schema-editor.component.scss'
@@ -38,6 +40,8 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
   showDiagram = false;
   showRightPanel = true;
   currentView: 'workspace' | 'preview' | 'diagram' = 'workspace';
+  showRootDependencyEditor = false;
+  schemaValidationExpanded = true; // Default to expanded for better UX
 
   // Available JSON Schema draft versions
   availableDrafts = [
@@ -62,6 +66,7 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
     this.schemaForm = this.fb.group({
       title: new FormControl('New Schema'),
       description: new FormControl(''),
+      schemaId: new FormControl(''),
       additionalProperties: new FormControl(true)
     });
     
@@ -107,22 +112,44 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
     this.schemaForm.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(values => {
-        this.schemaBuilder.updateSchema({
+        // Create update object with ID field based on current draft
+        const updateObj: any = {
           title: values.title,
           description: values.description,
           additionalProperties: values.additionalProperties
-        });
+        };
+        
+        // Add the appropriate ID field based on current draft
+        if (values.schemaId) {
+          if (this.currentIdField === 'id') {
+            updateObj.id = values.schemaId;
+            updateObj.$id = undefined; // Clear $id when using id
+          } else {
+            updateObj.$id = values.schemaId;
+            updateObj.id = undefined; // Clear id when using $id
+          }
+        }
+        
+        this.schemaBuilder.updateSchema(updateObj);
       });
       
     // Listen to config form changes
     this.configForm.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(values => {
+        const previousDraft = this.selectedDraft;
+        
         this.schemaBuilder.updateConfiguration(values);
         
         // Synchronize selectedDraft with draftVersion URL
         if (values.draftVersion) {
-          this.selectedDraft = SchemaValidationService.urlToDraftName(values.draftVersion);
+          const newDraft = SchemaValidationService.urlToDraftName(values.draftVersion);
+          this.selectedDraft = newDraft;
+          
+          // Handle draft change - migrate ID field if needed
+          if (previousDraft !== newDraft) {
+            this.handleDraftChange(newDraft);
+          }
         }
       });
 
@@ -136,10 +163,19 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  get currentIdField(): 'id' | '$id' {
+    const currentDraft = this.configForm.get('draftVersion')?.value || 'https://json-schema.org/draft/2020-12/schema';
+    return getIdFieldForDraft(SchemaValidationService.urlToDraftName(currentDraft));
+  }
+
   private updateSchemaForm(schema: JsonSchema): void {
+    // Get the appropriate ID value based on draft version
+    const idValue = schema.$id || schema.id || '';
+    
     this.schemaForm.patchValue({
       title: schema.title,
       description: schema.description,
+      schemaId: idValue,
       additionalProperties: schema.additionalProperties
     }, { emitEvent: false });
   }
@@ -150,6 +186,33 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
       generateDefinitions: config.generateDefinitions,
       draftVersion: config.draftVersion
     }, { emitEvent: false });
+  }
+
+  private handleDraftChange(newDraft: string): void {
+    // When draft changes, we need to update the schema to use the correct ID field
+    const currentSchema = this.schemaBuilder.getCurrentSchema();
+    const currentIdValue = currentSchema.$id || currentSchema.id || '';
+    
+    // Update the form with current ID value to ensure it's preserved
+    this.schemaForm.patchValue({
+      schemaId: currentIdValue
+    }, { emitEvent: false });
+    
+    // Force schema update with proper ID field migration
+    if (currentIdValue) {
+      const newIdField = getIdFieldForDraft(newDraft);
+      const updateObj: any = {};
+      
+      if (newIdField === 'id') {
+        updateObj.id = currentIdValue;
+        updateObj.$id = undefined; // Clear $id field
+      } else {
+        updateObj.$id = currentIdValue;
+        updateObj.id = undefined; // Clear id field
+      }
+      
+      this.schemaBuilder.updateSchema(updateObj);
+    }
   }
 
   addNewProperty(): void {
@@ -528,5 +591,212 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
 
   setActiveRightTab(tab: 'overview' | 'settings'): void {
     this.activeRightTab = tab;
+  }
+
+  // Root-level dependency methods for schema-wide conditional validation
+  hasRootLevelConditionalLogic(): boolean {
+    return !!(this.schema?.allOf && Array.isArray(this.schema.allOf) && 
+              this.schema.allOf.some((item: any) => item.if && item.then));
+  }
+
+  extractRootDependentSchemas(): { [key: string]: any } {
+    if (!this.schema?.allOf) return {};
+    
+    const dependentSchemas: { [key: string]: any } = {};
+    
+    (this.schema.allOf as any[]).forEach(item => {
+      if (item.if && item.then) {
+        // Extract condition property from if clause
+        if (item.if.properties) {
+          Object.keys(item.if.properties).forEach(conditionProp => {
+            const condition = item.if.properties[conditionProp];
+            if (condition.const !== undefined) {
+              const key = `${conditionProp}=${condition.const}`;
+              dependentSchemas[key] = {
+                if: item.if,
+                then: item.then,
+                else: item.else
+              };
+            }
+          });
+        }
+      }
+    });
+    
+    return dependentSchemas;
+  }
+
+  getAllSchemaPropertyNames(): string[] {
+    if (!this.schema?.properties) return [];
+    return Object.keys(this.schema.properties);
+  }
+
+  updateRootDependentSchemas(dependentSchemas: { [key: string]: any }): void {
+    // Convert dependent schemas back to allOf format for root-level storage
+    const allOfItems: any[] = [];
+    
+    Object.keys(dependentSchemas).forEach(key => {
+      const schema = dependentSchemas[key];
+      if (schema.if && schema.then) {
+        // Convert SchemaProperty objects to clean JSON Schema objects
+        const allOfItem: any = {
+          if: this.convertConditionalSchemaToJsonSchema(schema.if),
+          then: this.convertConditionalSchemaToJsonSchema(schema.then)
+        };
+        if (schema.else) {
+          allOfItem.else = this.convertConditionalSchemaToJsonSchema(schema.else);
+        }
+        allOfItems.push(allOfItem);
+      }
+    });
+    
+    // Update the schema
+    this.schemaBuilder.updateSchema({ allOf: allOfItems });
+  }
+
+  private convertSchemaPropertyToJsonSchema(prop: any): any {
+    if (!prop) return {};
+    
+    // If it's already a simple object, return as-is
+    if (!prop.id && !prop.name) {
+      return prop;
+    }
+
+    // Convert SchemaProperty to clean JSON Schema
+    const jsonSchema: any = {};
+    
+    if (prop.type) {
+      jsonSchema.type = prop.type.toLowerCase();
+    }
+    
+    if (prop.properties) {
+      jsonSchema.properties = {};
+      Object.keys(prop.properties).forEach(propKey => {
+        jsonSchema.properties[propKey] = this.convertSchemaPropertyToJsonSchema(prop.properties[propKey]);
+      });
+    }
+    
+    if (prop.required === true || (Array.isArray(prop.required) && prop.required.length > 0)) {
+      jsonSchema.required = Array.isArray(prop.required) ? prop.required : Object.keys(prop.properties || {});
+    }
+    
+    // Special handling for existence checks: if this is an 'if' condition for property existence,
+    // add the property to the required array
+    if (prop.name === 'if_condition' && prop.properties && Object.keys(prop.properties).length === 1) {
+      const propertyName = Object.keys(prop.properties)[0];
+      jsonSchema.required = [propertyName];
+    }
+    
+    // Copy other relevant properties
+    ['const', 'enum', 'pattern', 'minimum', 'maximum', 'minLength', 'maxLength'].forEach(key => {
+      if (prop[key] !== undefined) {
+        jsonSchema[key] = prop[key];
+      }
+    });
+    
+    return jsonSchema;
+  }
+
+  private convertConditionalSchemaToJsonSchema(prop: any): any {
+    if (!prop) return {};
+    
+    // If it's already a simple object, return as-is
+    if (!prop.id && !prop.name && !prop.type) {
+      return prop;
+    }
+
+    // Special handling for 'if' conditions
+    if (prop.name === 'if_condition' && prop.properties) {
+      const result: any = {};
+      
+      // Extract the single property condition
+      const propertyKeys = Object.keys(prop.properties);
+      if (propertyKeys.length === 1) {
+        const propertyName = propertyKeys[0];
+        const propertySchema = prop.properties[propertyName];
+        
+        result.properties = {
+          [propertyName]: {}
+        };
+        
+        // Add the condition (const, enum, etc.)
+        if (propertySchema.const !== undefined) {
+          result.properties[propertyName].const = propertySchema.const;
+        }
+        if (propertySchema.enum !== undefined) {
+          result.properties[propertyName].enum = propertySchema.enum;
+        }
+        if (propertySchema.pattern !== undefined) {
+          result.properties[propertyName].pattern = propertySchema.pattern;
+        }
+        
+        // For existence check, add required array
+        if (prop.name === 'if_condition' && !propertySchema.const && !propertySchema.enum && !propertySchema.pattern) {
+          result.required = [propertyName];
+        }
+      }
+      
+      return result;
+    }
+
+    // For 'then' and 'else' clauses, convert normally but don't add unnecessary wrapper
+    const jsonSchema: any = {};
+    
+    if (prop.properties) {
+      jsonSchema.properties = {};
+      Object.keys(prop.properties).forEach(propKey => {
+        jsonSchema.properties[propKey] = this.convertSchemaPropertyToJsonSchema(prop.properties[propKey]);
+      });
+      
+      // Only add type: object if we have properties
+      if (Object.keys(jsonSchema.properties).length > 0) {
+        jsonSchema.type = 'object';
+      }
+    }
+    
+    // Copy validation constraints
+    ['required', 'minProperties', 'maxProperties', 'additionalProperties'].forEach(key => {
+      if (prop[key] !== undefined) {
+        jsonSchema[key] = prop[key];
+      }
+    });
+    
+    return jsonSchema;
+  }
+
+  addSchemaLevelValidation(): void {
+    this.showRootDependencyEditor = true;
+    
+    // Initialize with a helpful example if no properties exist yet
+    if (this.getAllSchemaPropertyNames().length === 0) {
+      // Add some example properties to make the dependency editor useful
+      this.addExamplePropertiesForValidation();
+    }
+  }
+
+  private addExamplePropertiesForValidation(): void {
+    // Add country property
+    const countryProperty = this.schemaBuilder.createEmptyProperty();
+    countryProperty.name = 'country';
+    countryProperty.type = PropertyType.STRING;
+    countryProperty.title = 'Country';
+    countryProperty.enum = ['US', 'CA', 'UK', 'DE', 'FR'];
+    this.schemaBuilder.addProperty(countryProperty);
+    
+    // Add postal code property  
+    const postalProperty = this.schemaBuilder.createEmptyProperty();
+    postalProperty.name = 'postalCode';
+    postalProperty.type = PropertyType.STRING;
+    postalProperty.title = 'Postal Code';
+    postalProperty.description = 'Format will be validated based on country';
+    this.schemaBuilder.addProperty(postalProperty);
+  }
+
+  hideRootDependencyEditor(): void {
+    this.showRootDependencyEditor = false;
+  }
+
+  toggleSchemaValidationSection(): void {
+    this.schemaValidationExpanded = !this.schemaValidationExpanded;
   }
 }

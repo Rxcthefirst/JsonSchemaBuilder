@@ -8,7 +8,8 @@ import {
   ValidationRule,
   SchemaConfiguration,
   DEFAULT_SCHEMA_CONFIG,
-  DRAFT_FEATURES
+  DRAFT_FEATURES,
+  getIdFieldForDraft
 } from '../models/schema.models';
 import { SchemaValidationService } from './schema-validation.service';
 
@@ -101,6 +102,11 @@ export class SchemaBuilderService {
     const currentProperties = this.propertiesSubject.value;
     const updatedProperties = currentProperties.filter(prop => prop.id !== propertyId);
     this.propertiesSubject.next(updatedProperties);
+    this.regenerateJsonSchema();
+  }
+
+  clearAllProperties(): void {
+    this.propertiesSubject.next([]);
     this.regenerateJsonSchema();
   }
 
@@ -382,9 +388,15 @@ export class SchemaBuilderService {
     
     // Handle composition keywords
     if (jsonSchema.allOf !== undefined && Array.isArray(jsonSchema.allOf)) {
-      schema.allOf = jsonSchema.allOf.map((item: any, index: number) =>
-        this.convertPropertyFromJsonSchema(`allOf_${index}`, item, [])
-      );
+      // Preserve allOf items as raw objects if they contain conditional logic
+      schema.allOf = jsonSchema.allOf.map((item: any, index: number) => {
+        // If the item contains conditional keywords (if/then/else), preserve as raw object
+        if (item.if || item.then || item.else) {
+          return item; // Keep the raw conditional schema
+        }
+        // Otherwise, convert to SchemaProperty for normal schemas
+        return this.convertPropertyFromJsonSchema(`allOf_${index}`, item, []);
+      });
     }
     if (jsonSchema.anyOf !== undefined && Array.isArray(jsonSchema.anyOf)) {
       schema.anyOf = jsonSchema.anyOf.map((item: any, index: number) =>
@@ -442,7 +454,17 @@ export class SchemaBuilderService {
     if (jsonSchema.properties) {
       Object.keys(jsonSchema.properties).forEach(key => {
         const prop = jsonSchema.properties[key];
-        properties.push(this.convertPropertyFromJsonSchema(key, prop, jsonSchema.required || []));
+        const convertedProp = this.convertPropertyFromJsonSchema(key, prop, jsonSchema.required || []);
+        
+        // Check if this schema has allOf with conditional logic that should become dependentSchemas
+        if (jsonSchema.allOf) {
+          const conditionalSchemas = this.extractConditionalSchemasFromAllOf(jsonSchema.allOf, key);
+          if (Object.keys(conditionalSchemas).length > 0) {
+            convertedProp.dependentSchemas = conditionalSchemas;
+          }
+        }
+        
+        properties.push(convertedProp);
       });
     }
     
@@ -476,6 +498,42 @@ export class SchemaBuilderService {
     if (jsonSchema.oneOf) extractFromComposition(jsonSchema.oneOf, jsonSchema.required || []);
     
     return properties;
+  }
+
+  private extractConditionalSchemasFromAllOf(allOfArray: any[], propertyName: string): { [key: string]: any } {
+    const dependentSchemas: { [key: string]: any } = {};
+    
+    allOfArray.forEach((item) => {
+      // Look for conditional schemas with if/then/else pattern
+      if (item.if && item.then) {
+        // Extract the condition property from the 'if' clause
+        if (item.if.properties) {
+          Object.keys(item.if.properties).forEach(conditionProp => {
+            const condition = item.if.properties[conditionProp];
+            
+            // Create a conditional schema for this property
+            const conditionalSchema: any = {};
+            
+            if (condition.const !== undefined) {
+              // Handle const condition (e.g., country: "US")
+              conditionalSchema.if = { 
+                properties: { [conditionProp]: { const: condition.const } }
+              };
+              conditionalSchema.then = item.then;
+              
+              if (item.else) {
+                conditionalSchema.else = item.else;
+              }
+              
+              // Use the condition property as the key
+              dependentSchemas[conditionProp] = conditionalSchema;
+            }
+          });
+        }
+      }
+    });
+    
+    return dependentSchemas;
   }
 
   private convertPropertyFromJsonSchema(name: string, prop: any, required: string[]): SchemaProperty {
@@ -688,6 +746,27 @@ export class SchemaBuilderService {
     // Add definitions if using references and definitions were created
     if (config.useReferences && Object.keys(definitions).length > 0) {
       updatedSchema.definitions = definitions;
+    }
+    
+    // Clean up ID fields based on current draft version
+    const currentDraft = SchemaValidationService.urlToDraftName(config.draftVersion);
+    const correctIdField = getIdFieldForDraft(currentDraft);
+    const idValue = updatedSchema.$id || updatedSchema.id;
+    
+    if (idValue) {
+      if (correctIdField === 'id') {
+        // Use 'id' field for Draft 04
+        updatedSchema.id = idValue;
+        delete updatedSchema.$id;
+      } else {
+        // Use '$id' field for Draft 06+
+        updatedSchema.$id = idValue;
+        delete updatedSchema.id;
+      }
+    } else {
+      // No ID value, make sure both fields are cleared
+      delete updatedSchema.id;
+      delete updatedSchema.$id;
     }
     
     this.schemaSubject.next(updatedSchema);

@@ -1,0 +1,438 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/comprehensive-test-schema",
+  "title": "Comprehensive JSON Schema 2020-12 Test",
+  "description": "A comprehensive test schema demonstrating advanced Draft 2020-12 features including prefixItems, unevaluatedProperties, dependent schemas, and complex composition patterns",
+  "type": "object",
+  "properties": {
+    "personalInfo": {
+      "type": "object",
+      "title": "Personal Information",
+      "description": "Basic personal details with conditional validation",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "pattern": "^[A-Za-z\\s-']+$",
+          "title": "First Name",
+          "examples": ["John", "Mary-Jane", "José"]
+        },
+        "lastName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "pattern": "^[A-Za-z\\s-']+$",
+          "title": "Last Name"
+        },
+        "age": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 150,
+          "title": "Age in years"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "Email Address",
+          "examples": ["user@example.com"]
+        },
+        "phoneNumber": {
+          "type": "string",
+          "pattern": "^\\+?[1-9]\\d{1,14}$",
+          "title": "Phone Number",
+          "description": "International phone number format"
+        }
+      },
+      "required": ["firstName", "lastName"],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "age": { "type": "integer", "minimum": 18 }
+        }
+      },
+      "then": {
+        "properties": {
+          "driversLicense": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{8,20}$",
+            "title": "Driver's License Number"
+          }
+        }
+      }
+    },
+    "address": {
+      "type": "object",
+      "title": "Address Information",
+      "properties": {
+        "street": { "type": "string", "minLength": 1 },
+        "city": { "type": "string", "minLength": 1 },
+        "postalCode": { "type": "string" },
+        "country": {
+          "type": "string",
+          "enum": ["US", "CA", "GB", "DE", "FR", "JP", "AU"],
+          "title": "Country Code"
+        }
+      },
+      "required": ["street", "city", "country"],
+      "dependentSchemas": {
+        "country": {
+          "if": {
+            "properties": { "country": { "const": "US" } }
+          },
+          "then": {
+            "properties": {
+              "postalCode": {
+                "pattern": "^\\d{5}(-\\d{4})?$",
+                "title": "US ZIP Code"
+              },
+              "state": {
+                "type": "string",
+                "enum": ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"],
+                "title": "US State"
+              }
+            },
+            "required": ["state", "postalCode"]
+          },
+          "else": {
+            "if": {
+              "properties": { "country": { "const": "CA" } }
+            },
+            "then": {
+              "properties": {
+                "postalCode": {
+                  "pattern": "^[A-Z]\\d[A-Z] \\d[A-Z]\\d$",
+                  "title": "Canadian Postal Code"
+                },
+                "province": {
+                  "type": "string",
+                  "enum": ["AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT"],
+                  "title": "Canadian Province"
+                }
+              },
+              "required": ["province", "postalCode"]
+            }
+          }
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "title": "User Preferences",
+      "properties": {
+        "notifications": {
+          "type": "object",
+          "properties": {
+            "email": { "type": "boolean", "default": true },
+            "sms": { "type": "boolean", "default": false },
+            "push": { "type": "boolean", "default": true }
+          },
+          "additionalProperties": false
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["light", "dark", "auto"],
+          "default": "auto"
+        },
+        "language": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(-[A-Z]{2})?$",
+          "examples": ["en", "en-US", "es-ES", "fr-FR"],
+          "default": "en"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "skills": {
+      "type": "array",
+      "title": "Professional Skills",
+      "description": "Array demonstrating prefixItems and contains features",
+      "prefixItems": [
+        {
+          "type": "object",
+          "title": "Primary Skill",
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "level": { "type": "string", "enum": ["beginner", "intermediate", "advanced", "expert"] },
+            "yearsExperience": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["name", "level"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "title": "Secondary Skill",
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "level": { "type": "string", "enum": ["beginner", "intermediate", "advanced", "expert"] },
+            "yearsExperience": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["name", "level"],
+          "additionalProperties": false
+        }
+      ],
+      "unevaluatedItems": {
+        "type": "object",
+        "title": "Additional Skill",
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "level": { "type": "string", "enum": ["beginner", "intermediate", "advanced"] },
+          "certified": { "type": "boolean", "default": false }
+        },
+        "required": ["name", "level"],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "maxItems": 10,
+      "contains": {
+        "type": "object",
+        "properties": {
+          "level": { "const": "expert" }
+        }
+      },
+      "minContains": 1,
+      "maxContains": 3
+    },
+    "projects": {
+      "type": "array",
+      "title": "Portfolio Projects",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "description": { "type": "string", "maxLength": 500 },
+          "technologies": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true,
+            "minItems": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": ["planning", "in-progress", "completed", "archived"]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "repository": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://github\\.com/"
+          }
+        },
+        "required": ["name", "technologies", "status"],
+        "additionalProperties": false,
+        "if": {
+          "properties": { "status": { "enum": ["completed", "archived"] } }
+        },
+        "then": {
+          "required": ["endDate"]
+        }
+      }
+    },
+    "socialMedia": {
+      "type": "object",
+      "title": "Social Media Profiles",
+      "patternProperties": {
+        "^(twitter|linkedin|github|instagram)$": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "additionalProperties": false,
+      "maxProperties": 5
+    },
+    "configuration": {
+      "type": "object",
+      "title": "Advanced Configuration",
+      "oneOf": [
+        {
+          "title": "Basic Configuration",
+          "properties": {
+            "type": { "const": "basic" },
+            "autoSave": { "type": "boolean", "default": true },
+            "theme": { "type": "string", "enum": ["light", "dark"] }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "title": "Advanced Configuration",
+          "properties": {
+            "type": { "const": "advanced" },
+            "autoSave": { "type": "boolean", "default": true },
+            "theme": { "type": "string", "enum": ["light", "dark", "custom"] },
+            "customSettings": {
+              "type": "object",
+              "properties": {
+                "apiEndpoint": { "type": "string", "format": "uri" },
+                "timeout": { "type": "integer", "minimum": 1000, "maximum": 30000 },
+                "retries": { "type": "integer", "minimum": 0, "maximum": 5 }
+              },
+              "additionalProperties": true
+            }
+          },
+          "required": ["type", "customSettings"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "title": "Metadata",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "examples": ["1.0.0", "2.1.3"]
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["personalInfo", "address"],
+  "dependentRequired": {
+    "email": ["personalInfo"],
+    "phoneNumber": ["personalInfo"]
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "personalInfo": {
+            "properties": {
+              "age": { "type": "integer", "minimum": 16 }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "workExperience": {
+            "type": "array",
+            "title": "Work Experience",
+            "items": {
+              "type": "object",
+              "properties": {
+                "company": { "type": "string", "minLength": 1 },
+                "position": { "type": "string", "minLength": 1 },
+                "startDate": { "type": "string", "format": "date" },
+                "endDate": { "type": "string", "format": "date" },
+                "current": { "type": "boolean", "default": false }
+              },
+              "required": ["company", "position", "startDate"],
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "emailAddress": {
+      "type": "string",
+      "format": "email"
+    }
+  },
+  "examples": [
+    {
+      "personalInfo": {
+        "firstName": "Jane",
+        "lastName": "Doe",
+        "age": 28,
+        "email": "jane.doe@example.com",
+        "phoneNumber": "+1-555-123-4567"
+      },
+      "address": {
+        "street": "123 Main St",
+        "city": "New York",
+        "state": "NY",
+        "postalCode": "10001",
+        "country": "US"
+      },
+      "preferences": {
+        "notifications": {
+          "email": true,
+          "sms": false,
+          "push": true
+        },
+        "theme": "dark",
+        "language": "en-US"
+      },
+      "skills": [
+        {
+          "name": "JavaScript",
+          "level": "expert",
+          "yearsExperience": 8
+        },
+        {
+          "name": "Python",
+          "level": "advanced",
+          "yearsExperience": 5
+        },
+        {
+          "name": "React",
+          "level": "expert",
+          "certified": true
+        }
+      ],
+      "projects": [
+        {
+          "name": "JSON Schema Builder",
+          "description": "Advanced JSON Schema generation tool",
+          "technologies": ["Angular", "TypeScript", "JSON Schema"],
+          "status": "in-progress",
+          "startDate": "2024-01-15",
+          "repository": "https://github.com/example/json-schema-builder"
+        }
+      ],
+      "socialMedia": {
+        "github": "https://github.com/janedoe",
+        "linkedin": "https://linkedin.com/in/janedoe"
+      },
+      "configuration": {
+        "type": "advanced",
+        "autoSave": true,
+        "theme": "custom",
+        "customSettings": {
+          "apiEndpoint": "https://api.example.com/v2",
+          "timeout": 5000,
+          "retries": 3
+        }
+      },
+      "metadata": {
+        "version": "1.2.0",
+        "tags": ["professional", "developer", "full-stack"]
+      }
+    }
+  ]
+}

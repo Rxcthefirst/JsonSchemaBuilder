@@ -77,7 +77,7 @@ export interface SchemaProperty {
   else?: SchemaProperty;
   
   // Composition keywords
-  allOf?: SchemaProperty[];
+  allOf?: (SchemaProperty | any)[]; // Allow raw objects for conditional schemas
   anyOf?: SchemaProperty[];
   oneOf?: SchemaProperty[];
   not?: SchemaProperty;
@@ -92,7 +92,8 @@ export interface SchemaProperty {
 
 export interface JsonSchema {
   $schema?: string;
-  $id?: string;
+  $id?: string; // Draft 06+
+  id?: string; // Draft 04 only
   $ref?: string; // For schema references
   title?: string;
   description?: string;
@@ -147,7 +148,7 @@ export interface JsonSchema {
   else?: SchemaProperty;
   
   // Composition keywords
-  allOf?: SchemaProperty[];
+  allOf?: (SchemaProperty | any)[]; // Allow raw objects for conditional schemas
   anyOf?: SchemaProperty[];
   oneOf?: SchemaProperty[];
   not?: SchemaProperty;
@@ -211,29 +212,39 @@ export const DRAFT_FEATURES = {
   'draft-04': {
     exclusiveMinimum: 'boolean',
     exclusiveMaximum: 'boolean',
+    idField: 'id', // Draft 04 uses 'id'
     supports: ['enum', 'dependencies']
   },
   'draft-06': {
     exclusiveMinimum: 'number',
-    exclusiveMaximum: 'number', 
+    exclusiveMaximum: 'number',
+    idField: '$id', // Draft 06+ uses '$id'
     supports: ['enum', 'const', 'contains', 'propertyNames', 'dependencies', 'examples']
   },
   'draft-07': {
     exclusiveMinimum: 'number',
     exclusiveMaximum: 'number',
+    idField: '$id', // Draft 07+ uses '$id'
     supports: ['enum', 'const', 'contains', 'propertyNames', 'dependencies', 'examples', 'if', 'then', 'else', 'contentEncoding', 'contentMediaType', 'comment', 'deprecated', 'readOnly', 'writeOnly']
   },
   'draft-2019-09': {
     exclusiveMinimum: 'number', 
     exclusiveMaximum: 'number',
+    idField: '$id', // Draft 2019-09+ uses '$id'
     supports: ['enum', 'const', 'contains', 'propertyNames', 'dependentRequired', 'dependentSchemas', 'examples', 'if', 'then', 'else', 'contentEncoding', 'contentMediaType', 'comment', 'deprecated', 'readOnly', 'writeOnly']
   },
   'draft-2020-12': {
     exclusiveMinimum: 'number',
-    exclusiveMaximum: 'number', 
+    exclusiveMaximum: 'number',
+    idField: '$id', // Draft 2020-12+ uses '$id'
     supports: ['enum', 'const', 'contains', 'propertyNames', 'dependentRequired', 'dependentSchemas', 'examples', 'if', 'then', 'else', 'contentEncoding', 'contentMediaType', 'comment', 'deprecated', 'readOnly', 'writeOnly', 'prefixItems', 'unevaluatedItems', 'unevaluatedProperties']
   }
 };
+
+// Utility function to get correct ID field name for draft
+export function getIdFieldForDraft(draft: string): 'id' | '$id' {
+  return DRAFT_FEATURES[draft as keyof typeof DRAFT_FEATURES]?.idField as 'id' | '$id' || '$id';
+}
 
 export const VALIDATION_RULE_TYPES = {
   [PropertyType.STRING]: ['minLength', 'maxLength', 'pattern', 'format', 'enum'],

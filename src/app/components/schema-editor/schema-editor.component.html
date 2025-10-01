@@ -105,11 +105,78 @@
                 <input type="text" formControlName="description" placeholder="Schema description">
               </div>
               <div class="config-group">
+                <label>Schema {{ currentIdField }}:</label>
+                <input type="text" formControlName="schemaId" [placeholder]="'Schema ' + currentIdField + ' (optional)'">
+              </div>
+              <div class="config-group">
                 <label>
                   <input type="checkbox" formControlName="additionalProperties">
                   Allow Additional Properties
                 </label>
               </div>
+            </div>
+          </div>
+
+          <!-- Root-level Conditional Validation -->
+          <div class="schema-level-dependencies" *ngIf="schema && getAllSchemaPropertyNames().length > 0">
+            <div class="collapsible-header" (click)="toggleSchemaValidationSection()">
+              <h4>
+                <span class="collapse-icon">{{ schemaValidationExpanded ? '▼' : '▶' }}</span>
+                Schema-Level Conditional Validation
+              </h4>
+            </div>
+            
+            <div class="collapsible-content" *ngIf="schemaValidationExpanded">
+              <p class="help-text">Define validation rules that apply based on property values across the entire schema</p>
+            
+            <!-- Show dependency editor if conditional logic exists or if user chooses to add it -->
+            <div *ngIf="hasRootLevelConditionalLogic() || showRootDependencyEditor">
+              <app-dependency-editor
+                [dependentSchemas]="extractRootDependentSchemas()"
+                [availableProperties]="getAllSchemaPropertyNames()"
+                [currentDraft]="selectedDraft"
+                (dependentSchemasChange)="updateRootDependentSchemas($event)">
+              </app-dependency-editor>
+              
+              <button 
+                *ngIf="!hasRootLevelConditionalLogic() && showRootDependencyEditor"
+                type="button" 
+                class="btn btn-sm btn-outline" 
+                (click)="hideRootDependencyEditor()"
+                style="margin-top: 0.5rem;">
+                ❌ Cancel Schema Validation
+              </button>
+            </div>
+            
+            <!-- Show add button if no conditional logic exists -->
+            <div *ngIf="!hasRootLevelConditionalLogic() && !showRootDependencyEditor" class="schema-validation-prompt">
+              <div class="validation-info">
+                <h5>💡 Schema-Level Conditional Validation</h5>
+                <p>Create rules like:</p>
+                <ul class="examples-list">
+                  <li>"If <strong>country</strong> is 'US', then <strong>postalCode</strong> must match US ZIP format"</li>
+                  <li>"If <strong>type</strong> is 'premium', then <strong>features</strong> array is required"</li>
+                  <li>"If <strong>age</strong> is under 18, then <strong>parentConsent</strong> is required"</li>
+                </ul>
+              </div>
+              
+              <button 
+                type="button" 
+                class="btn btn-sm btn-primary" 
+                (click)="addSchemaLevelValidation()"
+                title="Add conditional validation rules that apply to the entire schema">
+                ➕ Add Schema-Level Validation
+              </button>
+              
+              <p class="help-text" style="margin-top: 0.5rem; font-size: 0.85em; color: #888;">
+                <span *ngIf="getAllSchemaPropertyNames().length === 0">
+                  💡 We'll add some example properties to get you started.
+                </span>
+                <span *ngIf="getAllSchemaPropertyNames().length > 0">
+                  Configure validation rules based on your existing properties.
+                </span>
+              </p>
+            </div>
             </div>
           </div>
 
