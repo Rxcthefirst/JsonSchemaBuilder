@@ -168,6 +168,39 @@ export interface SchemaConfiguration {
   useReferences: boolean; // Enable $ref pattern generation
   generateDefinitions: boolean; // Auto-generate definitions section
   draftVersion: string; // JSON Schema draft version
+  
+  // Schema Registry integration settings
+  registry?: {
+    enabled: boolean;
+    url: string;
+    authentication: {
+      type: 'none' | 'basic' | 'apikey';
+      username?: string;
+      password?: string;
+      apiKey?: string;
+    };
+    defaultCompatibilityLevel: 'BACKWARD' | 'FORWARD' | 'FULL' | 'NONE';
+    validateOnSave: boolean;
+    autoPublish: boolean;
+    defaultSubject?: string;
+  };
+  
+  // Governance settings
+  governance?: {
+    requireDocumentation: boolean;
+    enforceNamingConventions: boolean;
+    enableApprovalWorkflow: boolean;
+    trackSchemaLineage: boolean;
+    allowBreakingChanges: boolean;
+  };
+  
+  // Evolution settings
+  evolution?: {
+    enableCompatibilityChecks: boolean;
+    showEvolutionAnalysis: boolean;
+    generateMigrationSteps: boolean;
+    warnOnBreakingChanges: boolean;
+  };
 }
 
 export interface SchemaFormData {
@@ -261,7 +294,36 @@ export const VALIDATION_RULE_TYPES = {
 export const DEFAULT_SCHEMA_CONFIG: SchemaConfiguration = {
   useReferences: false,
   generateDefinitions: true,
-  draftVersion: 'https://json-schema.org/draft/2020-12/schema'
+  draftVersion: 'https://json-schema.org/draft/2020-12/schema',
+  
+  // Default Schema Registry settings
+  registry: {
+    enabled: false,
+    url: '/api/schema-registry',
+    authentication: {
+      type: 'none'
+    },
+    defaultCompatibilityLevel: 'BACKWARD',
+    validateOnSave: false,
+    autoPublish: false
+  },
+  
+  // Default Governance settings
+  governance: {
+    requireDocumentation: false,
+    enforceNamingConventions: false,
+    enableApprovalWorkflow: false,
+    trackSchemaLineage: true,
+    allowBreakingChanges: true
+  },
+  
+  // Default Evolution settings
+  evolution: {
+    enableCompatibilityChecks: true,
+    showEvolutionAnalysis: true,
+    generateMigrationSteps: true,
+    warnOnBreakingChanges: true
+  }
 };
 
 // Map JSON Schema draft versions to Monaco validation URIs

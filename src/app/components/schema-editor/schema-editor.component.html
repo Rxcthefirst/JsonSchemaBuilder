@@ -70,6 +70,9 @@
             <button type="button" class="btn btn-sm btn-primary" (click)="exportSchema()" title="Export">
               💾 Export
             </button>
+            <button type="button" class="btn btn-sm btn-success" (click)="publishToRegistry()" title="Publish to Schema Registry" [disabled]="!isRegistryConnected()">
+              🚀 Publish to Registry
+            </button>
           </ng-container>
 
           <!-- Diagram Actions -->
@@ -116,6 +119,9 @@
               </div>
             </div>
           </div>
+
+          <!-- Schema Registry Connection -->
+          <app-registry-connection></app-registry-connection>
 
           <!-- Root-level Conditional Validation -->
           <div class="schema-level-dependencies" *ngIf="schema && getAllSchemaPropertyNames().length > 0">

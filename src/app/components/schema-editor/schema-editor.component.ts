@@ -6,8 +6,10 @@ import { PropertyTreeEditorComponent } from '../property-tree-editor/property-tr
 import { SchemaPreviewComponent } from '../schema-preview/schema-preview.component';
 import { CytoscapeDiagramComponent } from '../cytoscape-diagram/cytoscape-diagram.component';
 import { DependencyEditorComponent } from '../dependency-editor/dependency-editor.component';
+import { RegistryConnectionComponent } from '../registry/registry-connection.component';
 import { SchemaBuilderService } from '../../services/schema-builder.service';
 import { SchemaValidationService, ValidationResult, JsonSchemaDraft } from '../../services/schema-validation.service';
+import { SchemaRegistryService } from '../../services/registry/schema-registry.service';
 import { SchemaProperty, JsonSchema, PropertyType, SchemaConfiguration, getIdFieldForDraft } from '../../models/schema.models';
 
 @Component({
@@ -19,7 +21,8 @@ import { SchemaProperty, JsonSchema, PropertyType, SchemaConfiguration, getIdFie
     PropertyTreeEditorComponent,
     SchemaPreviewComponent,
     CytoscapeDiagramComponent,
-    DependencyEditorComponent
+    DependencyEditorComponent,
+    RegistryConnectionComponent
   ],
   templateUrl: './schema-editor.component.html',
   styleUrl: './schema-editor.component.scss'
@@ -61,6 +64,7 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
   constructor(
     private schemaBuilder: SchemaBuilderService,
     private validationService: SchemaValidationService,
+    private registryService: SchemaRegistryService,
     private fb: FormBuilder
   ) {
     this.schemaForm = this.fb.group({
@@ -840,5 +844,56 @@ export class SchemaEditorComponent implements OnInit, OnDestroy {
 
   toggleSchemaValidationSection(): void {
     this.schemaValidationExpanded = !this.schemaValidationExpanded;
+  }
+
+  // Registry integration methods
+  isRegistryConnected(): boolean {
+    return this.registryService.getConnectionStatus().connected;
+  }
+
+  publishToRegistry(): void {
+    if (!this.isRegistryConnected()) {
+      alert('Please connect to Schema Registry first');
+      return;
+    }
+
+    const currentSchema = this.schemaBuilder.getCurrentSchema();
+    
+    // Simple subject name prompt - in production you'd have a proper dialog
+    const subjectName = prompt('Enter subject name for this schema:');
+    if (!subjectName) {
+      return;
+    }
+
+    console.log('Publishing schema to registry...', { subjectName, schema: currentSchema });
+
+    this.registryService.configure({
+      url: '/api/schema-registry',
+      authentication: { type: 'none' },
+      defaultCompatibilityLevel: 'BACKWARD',
+      timeout: 10000,
+      retryAttempts: 1
+    });
+
+    // Use the registerJsonSchema method from the service
+    this.registryService.registerJsonSchema({
+      subject: subjectName,
+      schema: currentSchema,
+      validateCompatibility: true
+    }).subscribe({
+      next: (result) => {
+        if (result.success) {
+          alert(`✅ Schema published successfully!\nSubject: ${subjectName}\nVersion: ${result.version || 'N/A'}`);
+          console.log('✅ Schema published:', result);
+        } else {
+          alert(`❌ Publishing failed:\n${result.errors?.join('\n') || 'Unknown error'}`);
+          console.error('❌ Publishing failed:', result.errors);
+        }
+      },
+      error: (error) => {
+        alert(`❌ Publishing error:\n${error.message || error}`);
+        console.error('❌ Publishing error:', error);
+      }
+    });
   }
 }
