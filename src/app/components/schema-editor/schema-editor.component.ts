@@ -7,6 +7,7 @@ import { SchemaPreviewComponent } from '../schema-preview/schema-preview.compone
 import { CytoscapeDiagramComponent } from '../cytoscape-diagram/cytoscape-diagram.component';
 import { DependencyEditorComponent } from '../dependency-editor/dependency-editor.component';
 import { RegistryConnectionComponent } from '../registry/registry-connection.component';
+import { FeatureGuideComponent } from '../shared/feature-guide.component';
 import { SchemaBuilderService } from '../../services/schema-builder.service';
 import { SchemaValidationService, ValidationResult, JsonSchemaDraft } from '../../services/schema-validation.service';
 import { SchemaRegistryService } from '../../services/registry/schema-registry.service';
@@ -22,7 +23,8 @@ import { SchemaProperty, JsonSchema, PropertyType, SchemaConfiguration, getIdFie
     SchemaPreviewComponent,
     CytoscapeDiagramComponent,
     DependencyEditorComponent,
-    RegistryConnectionComponent
+    RegistryConnectionComponent,
+    FeatureGuideComponent
   ],
   templateUrl: './schema-editor.component.html',
   styleUrl: './schema-editor.component.scss'
