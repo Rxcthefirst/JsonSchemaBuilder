@@ -43,6 +43,8 @@ export class NavigationService {
       });
   }
 
+  // Navigation helper methods are defined below in the file
+
   private generateBreadcrumbs(url: string): void {
     const breadcrumbs: BreadcrumbItem[] = [];
     const segments = url.split('/').filter(segment => segment);

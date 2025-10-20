@@ -1,0 +1,593 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-home',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="home-container">
+      <!-- Hero Section -->
+      <section class="hero">
+        <div class="hero-content">
+          <div class="hero-text">
+            <h1 class="hero-title">
+              Schema Registry Builder
+              <span class="version-badge">Phase 2</span>
+            </h1>
+            <p class="hero-description">
+              Create, evolve, and manage JSON Schemas for your Schema Registry with confidence. 
+              Our modern, registry-first approach makes schema evolution safe and predictable.
+            </p>
+            
+            <div class="hero-actions">
+              <button 
+                class="action-btn primary"
+                (click)="navigateToEditor()"
+              >
+                <span class="btn-icon">🚀</span>
+                Start Building Schemas
+              </button>
+              
+              <button 
+                class="action-btn secondary"
+                (click)="navigateToRegistry()"
+              >
+                <span class="btn-icon">📚</span>
+                Browse Registry
+              </button>
+            </div>
+          </div>
+          
+          <div class="hero-visual">
+            <div class="visual-card">
+              <div class="card-header">
+                <span class="card-title">🛠️ Modern Editor</span>
+              </div>
+              <div class="card-content">
+                <div class="feature-list">
+                  <div class="feature-item">✅ Registry-First Design</div>
+                  <div class="feature-item">✅ Evolution Management</div>
+                  <div class="feature-item">✅ Compatibility Analysis</div>
+                  <div class="feature-item">✅ Template Library</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature Grid -->
+      <section class="features">
+        <div class="features-content">
+          <h2 class="section-title">Everything You Need for Schema Management</h2>
+          
+          <div class="feature-grid">
+            
+            <!-- Schema Editor -->
+            <div class="feature-card" (click)="navigateToEditor()">
+              <div class="feature-icon">🛠️</div>
+              <h3 class="feature-title">Modern Schema Editor</h3>
+              <p class="feature-description">
+                Build schemas with templates, real-time validation, and registry-optimized workflows
+              </p>
+              <div class="feature-tags">
+                <span class="tag">Templates</span>
+                <span class="tag">Validation</span>
+                <span class="tag">Export</span>
+              </div>
+            </div>
+
+            <!-- Registry Browser -->
+            <div class="feature-card" (click)="navigateToRegistry()">
+              <div class="feature-icon">📚</div>
+              <h3 class="feature-title">Registry Browser</h3>
+              <p class="feature-description">
+                Explore, search, and manage all schemas in your Schema Registry with advanced filtering
+              </p>
+              <div class="feature-tags">
+                <span class="tag">Search</span>
+                <span class="tag">Filter</span>
+                <span class="tag">Metadata</span>
+              </div>
+            </div>
+
+            <!-- Schema Evolution -->
+            <div class="feature-card" (click)="navigateToEvolution()">
+              <div class="feature-icon">🔄</div>
+              <h3 class="feature-title">Schema Evolution</h3>
+              <p class="feature-description">
+                Safely evolve schemas with compatibility analysis and guided migration workflows
+              </p>
+              <div class="feature-tags">
+                <span class="tag">Compatibility</span>
+                <span class="tag">Migration</span>
+                <span class="tag">Analysis</span>
+              </div>
+            </div>
+
+            <!-- Version Management -->
+            <div class="feature-card" (click)="navigateToVersioning()">
+              <div class="feature-icon">📊</div>
+              <h3 class="feature-title">Version Management</h3>
+              <p class="feature-description">
+                Track schema versions, compare changes, and visualize evolution history
+              </p>
+              <div class="feature-tags">
+                <span class="tag">History</span>
+                <span class="tag">Compare</span>
+                <span class="tag">Timeline</span>
+              </div>
+            </div>
+
+            <!-- Compatibility Testing -->
+            <div class="feature-card" (click)="navigateToCompatibility()">
+              <div class="feature-icon">🔍</div>
+              <h3 class="feature-title">Compatibility Testing</h3>
+              <p class="feature-description">
+                Test schema compatibility before deployment with comprehensive analysis
+              </p>
+              <div class="feature-tags">
+                <span class="tag">Testing</span>
+                <span class="tag">Validation</span>
+                <span class="tag">Reports</span>
+              </div>
+            </div>
+
+            <!-- Legacy Editor -->
+            <div class="feature-card legacy" (click)="navigateToLegacyEditor()">
+              <div class="feature-icon">⚙️</div>
+              <h3 class="feature-title">Legacy Editor</h3>
+              <p class="feature-description">
+                Access the original schema builder for specialized use cases and comparison
+              </p>
+              <div class="feature-tags">
+                <span class="tag">Legacy</span>
+                <span class="tag">Fallback</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Phase Information -->
+      <section class="phase-info">
+        <div class="phase-content">
+          <div class="phase-card">
+            <div class="phase-header">
+              <span class="phase-badge">Phase 2 Complete</span>
+              <h3 class="phase-title">Registry & Evolution Management</h3>
+            </div>
+            <div class="phase-features">
+              <div class="phase-feature">
+                <span class="check-icon">✅</span>
+                <span>Subject Browser & Management</span>
+              </div>
+              <div class="phase-feature">
+                <span class="check-icon">✅</span>
+                <span>Version History & Comparison</span>
+              </div>
+              <div class="phase-feature">
+                <span class="check-icon">✅</span>
+                <span>Schema Evolution Wizard</span>
+              </div>
+              <div class="phase-feature">
+                <span class="check-icon">✅</span>
+                <span>Compatibility Analysis</span>
+              </div>
+              <div class="phase-feature">
+                <span class="check-icon">✅</span>
+                <span>Modern Registry-First Editor</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="phase-roadmap">
+            <h4 class="roadmap-title">Coming in Phase 3 & 4</h4>
+            <div class="roadmap-items">
+              <div class="roadmap-item">🎯 Advanced Schema Governance</div>
+              <div class="roadmap-item">🔐 Enterprise Security Features</div>
+              <div class="roadmap-item">📈 Analytics & Insights</div>
+              <div class="roadmap-item">🔌 Extended Integrations</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  `,
+  styles: [`
+    .home-container {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 80px 0 120px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+      opacity: 0.3;
+    }
+
+    .hero-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-title {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 0 0 16px 0;
+      line-height: 1.2;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .version-badge {
+      background: #10b981;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .hero-description {
+      font-size: 20px;
+      line-height: 1.6;
+      margin: 0 0 32px 0;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .action-btn.primary {
+      background: #ffffff;
+      color: #667eea;
+    }
+
+    .action-btn.primary:hover {
+      background: #f8fafc;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .action-btn.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .action-btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .btn-icon {
+      font-size: 18px;
+    }
+
+    /* Hero Visual */
+    .hero-visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .visual-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .card-header {
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Features Section */
+    .features {
+      background: white;
+      color: #1a202c;
+      padding: 80px 0;
+    }
+
+    .features-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .section-title {
+      font-size: 36px;
+      font-weight: bold;
+      text-align: center;
+      margin: 0 0 60px 0;
+      color: #1a202c;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: white;
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 32px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card:hover {
+      border-color: #3b82f6;
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(59, 130, 246, 0.1);
+    }
+
+    .feature-card.legacy {
+      border-color: #d1d5db;
+      opacity: 0.8;
+    }
+
+    .feature-card.legacy:hover {
+      border-color: #9ca3af;
+    }
+
+    .feature-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .feature-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      color: #1a202c;
+    }
+
+    .feature-description {
+      font-size: 16px;
+      line-height: 1.5;
+      color: #64748b;
+      margin: 0 0 20px 0;
+    }
+
+    .feature-tags {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      background: #eff6ff;
+      color: #2563eb;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* Phase Info Section */
+    .phase-info {
+      background: #f8fafc;
+      padding: 60px 0;
+      color: #1a202c;
+    }
+
+    .phase-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    .phase-card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .phase-header {
+      margin-bottom: 24px;
+    }
+
+    .phase-badge {
+      background: #dcfce7;
+      color: #166534;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+
+    .phase-title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: #1a202c;
+    }
+
+    .phase-features {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .phase-feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 16px;
+    }
+
+    .check-icon {
+      color: #10b981;
+      font-size: 16px;
+    }
+
+    .phase-roadmap {
+      background: #f1f5f9;
+      padding: 24px;
+      border-radius: 12px;
+    }
+
+    .roadmap-title {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .roadmap-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .roadmap-item {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+      .hero-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        text-align: center;
+      }
+
+      .phase-content {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: 60px 0 80px 0;
+      }
+
+      .hero-title {
+        font-size: 36px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .hero-description {
+        font-size: 18px;
+      }
+
+      .hero-actions {
+        justify-content: center;
+      }
+
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title {
+        font-size: 28px;
+      }
+    }
+  `]
+})
+export class HomeComponent {
+  constructor(private router: Router) {}
+
+  navigateToEditor(): void {
+    this.router.navigate(['/schema-editor']);
+  }
+
+  navigateToRegistry(): void {
+    this.router.navigate(['/registry/subjects']);
+  }
+
+  navigateToEvolution(): void {
+    this.router.navigate(['/evolution']);
+  }
+
+  navigateToVersioning(): void {
+    this.router.navigate(['/registry/subjects']);
+  }
+
+  navigateToCompatibility(): void {
+    this.router.navigate(['/evolution/compatibility']);
+  }
+
+  navigateToLegacyEditor(): void {
+    this.router.navigate(['/editor']);
+  }
+}

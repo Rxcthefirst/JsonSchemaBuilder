@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
+import { HomeComponent } from './components/home/home.component';
 import { SchemaEditorComponent } from './components/schema-editor/schema-editor.component';
+import { ModernSchemaEditorComponent } from './components/schema-editor/modern-schema-editor.component';
 
 // Phase 2 Registry Components
 import { SubjectBrowserComponent } from './components/registry/subject-browser.component';
@@ -14,15 +16,29 @@ import { CompatibilityCheckerComponent } from './components/evolution/compatibil
 export const routes: Routes = [
   { 
     path: '', 
-    redirectTo: '/editor', 
+    redirectTo: '/home', 
     pathMatch: 'full' 
   },
+
+  // Home/Landing Page
+  { 
+    path: 'home', 
+    component: HomeComponent,
+    title: 'Schema Registry Builder'
+  },
   
-  // Phase 1 - Schema Editor (Original functionality)
+  // Modern Registry-Focused Schema Editor
+  { 
+    path: 'schema-editor', 
+    component: ModernSchemaEditorComponent,
+    title: 'Schema Registry Editor'
+  },
+  
+  // Legacy Editor (for comparison/fallback)
   { 
     path: 'editor', 
     component: SchemaEditorComponent,
-    title: 'JSON Schema Builder'
+    title: 'JSON Schema Builder (Legacy)'
   },
   
   // Phase 2 - Schema Registry Management
