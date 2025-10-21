@@ -1,0 +1,189 @@
+<div class="subject-details">
+      <div class="details-header">
+        <div class="breadcrumb">
+          <button class="back-btn" (click)="goBack()">← Back to Registry</button>
+          <span class="separator">/</span>
+          <span class="current-page">Subject Details</span>
+        </div>
+        
+        <div class="subject-title" *ngIf="subjectDetail">
+          <h1>{{ subjectDetail.name }}</h1>
+          <div class="subject-badges">
+            <span class="compatibility-badge" [attr.data-level]="subjectDetail.compatibility">
+              {{ subjectDetail.compatibility }}
+            </span>
+            <span class="type-badge">{{ subjectDetail.schemaType }}</span>
+            <span class="version-badge">v{{ subjectDetail.latestVersion.version }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="details-content" *ngIf="!loading && !error && subjectDetail">
+        <div class="details-grid">
+          <!-- Subject Information Panel -->
+          <div class="info-panel">
+            <h3>Subject Information</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="label">Subject Name:</span>
+                <span class="value">{{ subjectDetail.name }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Schema Type:</span>
+                <span class="value">{{ subjectDetail.schemaType }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Latest Version:</span>
+                <span class="value">v{{ subjectDetail.latestVersion.version }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Total Versions:</span>
+                <span class="value">{{ subjectDetail.totalVersions }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Created:</span>
+                <span class="value">{{ subjectDetail.createdAt | date:'medium' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Last Updated:</span>
+                <span class="value">{{ subjectDetail.updatedAt | date:'medium' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compatibility Configuration Panel -->
+          <div class="compatibility-panel">
+            <h3>Compatibility Configuration</h3>
+            <div class="compatibility-content">
+              <div class="current-compatibility">
+                <span class="label">Current Level:</span>
+                <div class="compatibility-display">
+                  <span class="compatibility-badge" [attr.data-level]="subjectDetail.compatibility">
+                    {{ subjectDetail.compatibility }}
+                  </span>
+                  <button class="edit-btn" (click)="editCompatibility = true" *ngIf="!editCompatibility">
+                    Edit
+                  </button>
+                </div>
+              </div>
+
+              <div class="compatibility-editor" *ngIf="editCompatibility">
+                <select [(ngModel)]="newCompatibilityLevel" class="compatibility-select">
+                  <option value="BACKWARD">Backward Compatible</option>
+                  <option value="BACKWARD_TRANSITIVE">Backward Transitive</option>
+                  <option value="FORWARD">Forward Compatible</option>
+                  <option value="FORWARD_TRANSITIVE">Forward Transitive</option>
+                  <option value="FULL">Full Compatible</option>
+                  <option value="FULL_TRANSITIVE">Full Transitive</option>
+                  <option value="NONE">No Compatibility</option>
+                </select>
+                <div class="edit-actions">
+                  <button class="save-btn" (click)="saveCompatibility()" [disabled]="savingCompatibility">
+                    {{ savingCompatibility ? 'Saving...' : 'Save' }}
+                  </button>
+                  <button class="cancel-btn" (click)="cancelEditCompatibility()">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+
+              <div class="compatibility-description">
+                <p>{{ getCompatibilityDescription(subjectDetail.compatibility) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schema Preview Panel -->
+        <div class="schema-panel">
+          <h3>Latest Schema (v{{ subjectDetail.latestVersion.version }})</h3>
+          <div class="schema-content">
+            <pre class="schema-preview">{{ formatSchema(subjectDetail.latestVersion.schema) }}</pre>
+          </div>
+          <div class="schema-actions">
+            <button class="action-btn primary" (click)="downloadSchema()">
+              Download Schema
+            </button>
+            <button class="action-btn secondary" (click)="copySchema()">
+              Copy to Clipboard
+            </button>
+            <button class="action-btn secondary" (click)="editSchema()">
+              Edit Schema
+            </button>
+          </div>
+        </div>
+
+        <!-- Version History Panel -->
+        <div class="versions-panel">
+          <div class="versions-header">
+            <h3>Version History</h3>
+            <button class="action-btn secondary" (click)="viewVersionHistory()">
+              View Full History
+            </button>
+          </div>
+          
+          <div class="versions-list">
+            <div 
+              *ngFor="let version of subjectDetail.versions.slice(0, 5); trackBy: trackByVersion"
+              class="version-item"
+              [class.latest]="version.version === subjectDetail.latestVersion.version"
+            >
+              <div class="version-info">
+                <span class="version-number">v{{ version.version }}</span>
+                <span class="version-id">ID: {{ version.id }}</span>
+                <span class="version-date" *ngIf="version.createdAt">
+                  {{ version.createdAt | date:'short' }}
+                </span>
+              </div>
+              <div class="version-actions">
+                <button class="view-btn" (click)="viewVersion(version)">View</button>
+                <button class="compare-btn" (click)="compareVersions(version)" 
+                        *ngIf="version.version !== subjectDetail.latestVersion.version">
+                  Compare
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="show-more" *ngIf="subjectDetail.versions.length > 5">
+            <button class="action-btn secondary" (click)="viewVersionHistory()">
+              Show All {{ subjectDetail.totalVersions }} Versions
+            </button>
+          </div>
+        </div>
+
+        <!-- Actions Panel -->
+        <div class="actions-panel">
+          <h3>Actions</h3>
+          <div class="action-buttons">
+            <button class="action-btn primary" (click)="evolveSchema()">
+              Create New Version
+            </button>
+            <button class="action-btn secondary" (click)="testCompatibility()">
+              Test Compatibility
+            </button>
+            <button class="action-btn secondary" (click)="exportSubject()">
+              Export Subject
+            </button>
+            <button class="action-btn danger" (click)="deleteSubject()" 
+                    [disabled]="!canDeleteSubject">
+              Delete Subject
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Loading subject details...</p>
+      </div>
+
+      <!-- Error State -->
+      <div class="error-state" *ngIf="error">
+        <div class="error-icon">⚠️</div>
+        <h3>Error Loading Subject</h3>
+        <p>{{ error }}</p>
+        <button class="retry-btn" (click)="loadSubjectDetails()">Retry</button>
+      </div>
+    </div>

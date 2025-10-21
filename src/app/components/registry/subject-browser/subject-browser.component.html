@@ -1,0 +1,135 @@
+<div class="subject-browser">
+      <div class="browser-header">
+        <h2>Schema Registry Browser</h2>
+        <div class="connection-status" [class.connected]="isConnected" [class.disconnected]="!isConnected">
+          <span class="status-indicator"></span>
+          {{ isConnected ? 'Connected to Registry' : 'Disconnected' }}
+        </div>
+      </div>
+
+      <div class="search-filters">
+        <div class="search-section">
+          <input 
+            type="text" 
+            class="search-input"
+            [(ngModel)]="searchTerm"
+            placeholder="Search subjects by name..."
+            (input)="onSearchChange($event)"
+          >
+          <button class="refresh-btn" (click)="loadSubjects()" [disabled]="loading">
+            {{ loading ? 'Loading...' : 'Refresh' }}
+          </button>
+        </div>
+
+        <div class="filter-section">
+          <select [(ngModel)]="selectedCompatibility" (change)="onFilterChange()">
+            <option value="">All Compatibility Levels</option>
+            <option value="BACKWARD">Backward Compatible</option>
+            <option value="FORWARD">Forward Compatible</option>
+            <option value="FULL">Full Compatible</option>
+            <option value="NONE">No Compatibility</option>
+          </select>
+
+          <select [(ngModel)]="selectedType" (change)="onFilterChange()">
+            <option value="">All Schema Types</option>
+            <option value="JSON">JSON Schema</option>
+            <option value="AVRO">Avro Schema</option>
+            <option value="PROTOBUF">Protocol Buffers</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="subjects-container" *ngIf="!loading && !error">
+        <div class="subjects-header">
+          <span class="subjects-count">{{ filteredSubjects.length }} subjects found</span>
+          <div class="view-options">
+            <button 
+              class="view-btn"
+              [class.active]="viewMode === 'grid'"
+              (click)="viewMode = 'grid'"
+            >
+              Grid
+            </button>
+            <button 
+              class="view-btn"
+              [class.active]="viewMode === 'list'"
+              (click)="viewMode = 'list'"
+            >
+              List
+            </button>
+          </div>
+        </div>
+
+        <div class="subjects-content" [class.grid-view]="viewMode === 'grid'" [class.list-view]="viewMode === 'list'">
+          <div 
+            *ngFor="let subject of filteredSubjects; trackBy: trackBySubjectName"
+            class="subject-card"
+            (click)="onSubjectSelect(subject)"
+          >
+            <div class="subject-header">
+              <h3 class="subject-name">{{ subject.name }}</h3>
+              <span class="compatibility-badge" [attr.data-level]="subject.compatibility">
+                {{ subject.compatibility }}
+              </span>
+            </div>
+            
+            <div class="subject-info">
+              <div class="info-item">
+                <span class="label">Latest Version:</span>
+                <span class="value">v{{ subject.latestVersion }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Total Versions:</span>
+                <span class="value">{{ subject.totalVersions }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Schema Type:</span>
+                <span class="value">{{ subject.schemaType }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Last Modified:</span>
+                <span class="value">{{ subject.lastModified }}</span>
+              </div>
+            </div>
+
+            <div class="subject-actions">
+              <button class="action-btn primary" (click)="viewSubjectDetails($event, subject)">
+                View Details
+              </button>
+              <button class="action-btn secondary" (click)="compareVersions($event, subject)">
+                Compare Versions
+              </button>
+              <button class="action-btn secondary" (click)="evolveSchema($event, subject)">
+                Evolve Schema
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="loading-state" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Loading subjects from registry...</p>
+      </div>
+
+      <div class="error-state" *ngIf="error">
+        <div class="error-icon">⚠️</div>
+        <h3>Connection Error</h3>
+        <p>{{ error }}</p>
+        <button class="retry-btn" (click)="loadSubjects()">Retry Connection</button>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && !error && filteredSubjects.length === 0 && subjects.length === 0">
+        <div class="empty-icon">📋</div>
+        <h3>No Subjects Found</h3>
+        <p>The registry appears to be empty or no subjects match your search criteria.</p>
+        <button class="action-btn primary" (click)="createNewSubject()">Create First Subject</button>
+      </div>
+
+      <div class="no-matches-state" *ngIf="!loading && !error && filteredSubjects.length === 0 && subjects.length > 0">
+        <div class="empty-icon">🔍</div>
+        <h3>No Matches Found</h3>
+        <p>No subjects match your current search and filter criteria.</p>
+        <button class="action-btn secondary" (click)="clearFilters()">Clear Filters</button>
+      </div>
+    </div>

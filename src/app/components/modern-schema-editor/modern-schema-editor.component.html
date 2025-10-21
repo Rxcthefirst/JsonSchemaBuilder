@@ -1,0 +1,570 @@
+<div class="modern-editor">
+  
+  <!-- Editor Header -->
+  <div class="editor-header">
+    <div class="header-content">
+      <div class="header-main">
+        <h1 class="editor-title">
+          <span class="title-icon">🏗️</span>
+          Schema Registry Editor
+        </h1>
+        <p class="editor-subtitle">
+          Create, evolve, and manage JSON Schemas for your Schema Registry
+        </p>
+      </div>
+      
+      <div class="header-actions">
+        <button 
+          class="action-btn registry-btn"
+          (click)="navigateToRegistry()"
+          title="Browse Registry"
+        >
+          <span class="btn-icon">📚</span>
+          Registry
+        </button>
+        
+        <button 
+          class="action-btn evolution-btn"
+          (click)="navigateToEvolution()"
+          title="Evolution Tools"
+        >
+          <span class="btn-icon">🔄</span>
+          Evolution
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode Selection -->
+  <div class="mode-selection" *ngIf="!selectedMode">
+    <div class="mode-grid">
+      
+      <div 
+        *ngFor="let mode of availableModes"
+        class="mode-card"
+        (click)="selectMode(mode)"
+        [class.recommended]="mode.mode === 'create'"
+      >
+        <div class="mode-icon">{{ mode.icon }}</div>
+        <h3 class="mode-title">{{ mode.title }}</h3>
+        <p class="mode-description">{{ mode.description }}</p>
+        
+        <div class="mode-features" *ngIf="mode.mode === 'create'">
+          <span class="feature-tag">Templates</span>
+          <span class="feature-tag">Validation</span>
+          <span class="feature-tag">Registry Ready</span>
+        </div>
+        
+        <div class="mode-features" *ngIf="mode.mode === 'evolve'">
+          <span class="feature-tag">Evolution Analysis</span>
+          <span class="feature-tag">Compatibility Check</span>
+          <span class="feature-tag">Migration Path</span>
+        </div>
+        
+        <div class="mode-features" *ngIf="mode.mode === 'import'">
+          <span class="feature-tag">Registry Import</span>
+          <span class="feature-tag">File Upload</span>
+          <span class="feature-tag">URL Import</span>
+        </div>
+
+        <div class="mode-action">
+          <span class="action-text">Get Started →</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-section">
+      <h3 class="section-title">Quick Actions</h3>
+      <div class="quick-actions-grid">
+        <div 
+          *ngFor="let action of quickActions"
+          class="quick-action-card"
+          (click)="executeQuickAction(action)"
+          [class.disabled]="action.disabled"
+        >
+          <span class="action-icon">{{ action.icon }}</span>
+          <div class="action-content">
+            <h4 class="action-title">{{ action.title }}</h4>
+            <p class="action-description">{{ action.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Mode -->
+  <div class="create-mode" *ngIf="selectedMode?.mode === 'create'">
+    <div class="mode-header">
+      <button class="back-btn" (click)="goBackToModeSelection()">
+        ← Back to Mode Selection
+      </button>
+      <h2 class="mode-title">Create New Schema</h2>
+    </div>
+
+    <!-- Template Selection -->
+    <div class="template-section" *ngIf="!selectedTemplate">
+      <h3 class="section-title">Choose a Template</h3>
+      
+      <!-- Template Categories -->
+      <div class="template-categories">
+        <button 
+          *ngFor="let category of templateCategories"
+          class="category-btn"
+          [class.active]="selectedCategory === category.id"
+          (click)="selectCategory(category.id)"
+        >
+          <span class="category-icon">{{ category.icon }}</span>
+          {{ category.name }}
+        </button>
+      </div>
+
+      <!-- Template Grid -->
+      <div class="templates-grid">
+        <div 
+          *ngFor="let template of getFilteredTemplates()"
+          class="template-card"
+          (click)="selectTemplate(template)"
+        >
+          <div class="template-header">
+            <h4 class="template-name">{{ template.name }}</h4>
+            <div class="template-tags">
+              <span 
+                *ngFor="let tag of template.tags"
+                class="template-tag"
+              >
+                {{ tag }}
+              </span>
+            </div>
+          </div>
+          
+          <p class="template-description">{{ template.description }}</p>
+          
+          <div class="template-preview">
+            <pre class="schema-preview">{{ getTemplatePreview(template) }}</pre>
+          </div>
+          
+          <div class="template-action">
+            <span class="action-text">Use Template →</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schema Editor -->
+    <div class="schema-editor-section" *ngIf="selectedTemplate || globalState.hasSchema()">
+      <div class="editor-toolbar">
+        <button class="back-btn" (click)="goBackToTemplates()" *ngIf="selectedTemplate">
+          ← Back to Templates
+        </button>
+        
+        <div class="toolbar-info">
+          <h3 *ngIf="selectedTemplate">Editing: {{ selectedTemplate.name }}</h3>
+          <h3 *ngIf="!selectedTemplate && globalState.schemaTitle()">{{ globalState.schemaTitle() }}</h3>
+          <span class="template-category" *ngIf="selectedTemplate">{{ selectedTemplate.category }}</span>
+          <span class="schema-mode" *ngIf="globalState.getActiveMode()">{{ globalState.getActiveMode() | titlecase }} Mode</span>
+        </div>
+        
+        <div class="toolbar-actions">
+          <button 
+            class="action-btn validate-btn"
+            (click)="validateCurrentSchema()"
+            [disabled]="isValidating"
+          >
+            <span class="btn-icon">✓</span>
+            {{ isValidating ? 'Validating...' : 'Validate' }}
+          </button>
+          
+          <button 
+            class="action-btn preview-btn"
+            (click)="togglePreview()"
+          >
+            <span class="btn-icon">👁️</span>
+            {{ showPreview ? 'Hide' : 'Show' }} Preview
+          </button>
+
+          <button 
+            class="action-btn diagram-btn"
+            (click)="toggleDiagram()"
+          >
+            <span class="btn-icon">🗂️</span>
+            {{ globalState.state().showDiagram ? 'Hide' : 'Show' }} Diagram
+          </button>
+          
+          <button 
+            class="action-btn primary publish-btn"
+            (click)="publishToRegistry()"
+            [disabled]="!canPublish()"
+          >
+            <span class="btn-icon">🚀</span>
+            Publish to Registry
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-workspace">
+        <!-- Schema Form & Metadata -->
+        <div class="schema-form-panel" [formGroup]="schemaForm">
+          <div class="form-section">
+            <h4 class="section-title">Schema Information</h4>
+            
+            <div class="form-group">
+              <label for="subjectName">Subject Name *</label>
+              <input 
+                type="text"
+                id="subjectName"
+                formControlName="subjectName"
+                placeholder="e.g., user-profile, order-event"
+                class="form-control"
+              >
+              <div class="field-help">
+                Subject name in the Schema Registry (will be used for versioning)
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="title">Schema Title *</label>
+              <input 
+                type="text"
+                id="title"
+                formControlName="title"
+                placeholder="Human-readable title"
+                class="form-control"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="description">Description</label>
+              <textarea 
+                id="description"
+                formControlName="description"
+                placeholder="Describe what this schema represents"
+                class="form-control"
+                rows="3"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="version">Schema Version</label>
+              <input 
+                type="text"
+                id="version"
+                formControlName="version"
+                placeholder="1.0.0"
+                class="form-control"
+              >
+              <div class="field-help">
+                Semantic version for your schema
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4 class="section-title">Registry Configuration</h4>
+            
+            <div class="form-group">
+              <label for="compatibilityLevel">Compatibility Level</label>
+              <select 
+                id="compatibilityLevel"
+                formControlName="compatibilityLevel"
+                class="form-control"
+              >
+                <option value="BACKWARD">Backward - New schema can read old data</option>
+                <option value="FORWARD">Forward - Old schema can read new data</option>
+                <option value="FULL">Full - Both backward and forward compatible</option>
+                <option value="NONE">None - No compatibility requirements</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <input 
+                  type="checkbox"
+                  formControlName="enableValidation"
+                >
+                Enable schema validation
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <input 
+                  type="checkbox"
+                  formControlName="generateDocumentation"
+                >
+                Generate documentation
+              </label>
+            </div>
+          </div>
+
+          <!-- Property Management Section -->
+          <div class="form-section" *ngIf="globalState.getCurrentProperties().length > 0">
+            <div class="section-header">
+              <h4 class="section-title">Schema Properties</h4>
+              <button class="add-property-btn" (click)="addRootProperty()">
+                + Add Property
+              </button>
+            </div>
+
+            <div class="property-list-container">
+              <div 
+                *ngFor="let property of globalState.getCurrentProperties()"
+                class="property-item"
+              >
+                <div class="property-header">
+                  <span class="property-name">{{ property.name }}</span>
+                  <span class="property-type">{{ property.type }}</span>
+                  <button 
+                    class="delete-property-btn"
+                    (click)="onDeleteProperty(property.name)"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div class="property-description" *ngIf="property.description">
+                  {{ property.description }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enhanced JSON Editor with Tabs -->
+        <div class="main-editor-panel">
+          <div class="editor-tabs">
+            <button 
+              class="tab-btn"
+              [class.active]="activeEditorTab === 'json'"
+              (click)="activeEditorTab = 'json'"
+            >
+              <span class="tab-icon">📝</span>
+              JSON Editor
+            </button>
+            <button 
+              class="tab-btn"
+              [class.active]="activeEditorTab === 'visual'"
+              (click)="activeEditorTab = 'visual'"
+            >
+              <span class="tab-icon">🎨</span>
+              Visual Editor
+            </button>
+          </div>
+
+          <!-- JSON Editor Tab -->
+          <div class="json-editor-panel" *ngIf="activeEditorTab === 'json'">
+            <div class="editor-header">
+              <h4>Schema Definition</h4>
+              <div class="editor-actions">
+                <button class="editor-btn" (click)="formatJSON()">Format</button>
+                <button class="editor-btn" (click)="addProperty()">+ Property</button>
+                <button class="editor-btn" (click)="importExample()">Import Example</button>
+              </div>
+            </div>
+            
+            <div class="json-editor">
+              <textarea
+                class="json-textarea"
+                [(ngModel)]="schemaJSON"
+                (ngModelChange)="onSchemaChange($event)"
+                placeholder="Your JSON Schema will appear here..."
+                spellcheck="false"
+              ></textarea>
+            </div>
+
+            <!-- Validation Results -->
+            <div class="validation-panel" *ngIf="validationResult">
+              <div class="validation-header">
+                <h5 class="validation-title">
+                  <span class="status-icon" [class.valid]="validationResult.isValid" [class.invalid]="!validationResult.isValid">
+                    {{ validationResult.isValid ? '✅' : '❌' }}
+                  </span>
+                  Validation {{ validationResult.isValid ? 'Passed' : 'Failed' }}
+                </h5>
+              </div>
+              
+              <div class="validation-content" *ngIf="!validationResult.isValid">
+                <div class="validation-errors">
+                  <div 
+                    *ngFor="let error of validationResult.errors"
+                    class="validation-item error"
+                  >
+                    <strong>{{ error.path }}:</strong> {{ error.message }}
+                    <div class="suggestion" *ngIf="error.suggestion">
+                      💡 {{ error.suggestion }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visual Editor Tab -->
+          <div class="visual-editor-panel" *ngIf="activeEditorTab === 'visual'">
+            <div class="visual-editor-content">
+              <div class="property-designer">
+                <h4>Schema Structure Designer</h4>
+                <p>Visual property editor - drag and drop interface coming soon.</p>
+                
+                <div class="designer-placeholder">
+                  <div class="placeholder-icon">🎨</div>
+                  <div class="placeholder-text">Visual Designer</div>
+                  <div class="placeholder-description">
+                    Drag and drop interface for building schema properties
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview/Diagram Panel -->
+        <div class="preview-panel" *ngIf="showPreview || globalState.state().showDiagram">
+          <div class="preview-header">
+            <div class="preview-tabs">
+              <button 
+                class="tab-btn"
+                [class.active]="previewTab === 'formatted' && showPreview"
+                (click)="showPreviewTab('formatted')"
+              >
+                Schema Preview
+              </button>
+              <button 
+                class="tab-btn"
+                [class.active]="previewTab === 'example' && showPreview"
+                (click)="showPreviewTab('example')"
+              >
+                Example Data
+              </button>
+              <button 
+                class="tab-btn"
+                [class.active]="globalState.state().showDiagram"
+                (click)="showDiagramTab()"
+              >
+                Schema Diagram
+              </button>
+            </div>
+            <button class="close-btn" (click)="closePreviews()">×</button>
+          </div>
+          
+          <div class="preview-content">
+            <!-- Schema Preview -->
+            <div class="preview-body" *ngIf="previewTab === 'formatted' && showPreview">
+              <pre class="formatted-preview">{{ getFormattedSchema() }}</pre>
+            </div>
+
+            <!-- Example Data -->
+            <div class="preview-body" *ngIf="previewTab === 'example' && showPreview">
+              <pre class="example-preview">{{ getExampleData() }}</pre>
+            </div>
+
+            <!-- Schema Diagram Placeholder -->
+            <div class="diagram-body" *ngIf="globalState.state().showDiagram">
+              <div class="diagram-placeholder">
+                <div class="placeholder-icon">🗂️</div>
+                <div class="placeholder-text">Schema Diagram</div>
+                <div class="placeholder-description">
+                  Visual representation of schema structure
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evolve Mode -->
+  <div class="evolve-mode" *ngIf="selectedMode?.mode === 'evolve'">
+    <div class="mode-header">
+      <button class="back-btn" (click)="goBackToModeSelection()">
+        ← Back to Mode Selection
+      </button>
+      <h2 class="mode-title">Evolve Existing Schema</h2>
+    </div>
+
+    <!-- Evolution Workflow -->
+    <div class="evolution-workflow">
+      <div class="workflow-steps">
+        <div 
+          *ngFor="let step of evolutionSteps; let i = index"
+          class="workflow-step"
+          [class.active]="currentEvolutionStep === i"
+          [class.completed]="currentEvolutionStep > i"
+        >
+          <div class="step-number">{{ i + 1 }}</div>
+          <div class="step-content">
+            <h4 class="step-title">{{ step.title }}</h4>
+            <p class="step-description">{{ step.description }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="workflow-actions">
+        <button 
+          class="action-btn evolution-wizard-btn"
+          (click)="startEvolutionWizard()"
+        >
+          <span class="btn-icon">🧙‍♂️</span>
+          Start Evolution Wizard
+        </button>
+        
+        <button 
+          class="action-btn compatibility-btn"
+          (click)="openCompatibilityChecker()"
+        >
+          <span class="btn-icon">🔍</span>
+          Check Compatibility
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Mode -->
+  <div class="import-mode" *ngIf="selectedMode?.mode === 'import'">
+    <div class="mode-header">
+      <button class="back-btn" (click)="goBackToModeSelection()">
+        ← Back to Mode Selection
+      </button>
+      <h2 class="mode-title">Import Schema</h2>
+    </div>
+
+    <!-- Import Options -->
+    <div class="import-options">
+      <div class="import-method-grid">
+        
+        <div class="import-method" (click)="selectImportMethod('registry')">
+          <div class="method-icon">📚</div>
+          <h3 class="method-title">From Registry</h3>
+          <p class="method-description">
+            Import an existing schema from the Schema Registry for editing or evolution
+          </p>
+        </div>
+
+        <div class="import-method" (click)="selectImportMethod('file')">
+          <div class="method-icon">📄</div>
+          <h3 class="method-title">From File</h3>
+          <p class="method-description">
+            Upload a JSON Schema file from your computer
+          </p>
+        </div>
+
+        <div class="import-method" (click)="selectImportMethod('url')">
+          <div class="method-icon">🌐</div>
+          <h3 class="method-title">From URL</h3>
+          <p class="method-description">
+            Import a schema from a public URL or API endpoint
+          </p>
+        </div>
+
+        <div class="import-method" (click)="selectImportMethod('paste')">
+          <div class="method-icon">📋</div>
+          <h3 class="method-title">Paste JSON</h3>
+          <p class="method-description">
+            Paste JSON Schema directly into the editor
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

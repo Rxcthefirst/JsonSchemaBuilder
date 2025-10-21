@@ -18,7 +18,8 @@ export class NavigationService {
   public breadcrumbs$ = this.breadcrumbsSubject.asObservable();
 
   private routeLabels: { [key: string]: string } = {
-    '/editor': 'Schema Editor',
+    '/editor': 'Legacy Schema Editor',
+    '/schema-editor': 'Schema Registry Editor',
     '/registry': 'Registry',
     '/registry/subjects': 'Browse Subjects',
     '/evolution': 'Evolution Tools',
@@ -27,7 +28,8 @@ export class NavigationService {
   };
 
   private routeIcons: { [key: string]: string } = {
-    '/editor': '📝',
+    '/editor': '⚙️',
+    '/schema-editor': '📝',
     '/registry': '📚',
     '/registry/subjects': '📚',
     '/evolution': '🔄',

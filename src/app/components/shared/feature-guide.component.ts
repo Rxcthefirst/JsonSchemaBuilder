@@ -174,7 +174,7 @@ import { RouterModule } from '@angular/router';
               </div>
             </a>
 
-            <a routerLink="/editor" class="quick-action">
+            <a routerLink="/schema-editor" class="quick-action">
               <span class="action-icon">📝</span>
               <div class="action-content">
                 <strong>Schema Editor</strong>

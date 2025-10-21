@@ -1,0 +1,153 @@
+<div class="registry-connection-panel">
+      <h3>Schema Registry Connection</h3>
+      
+      <!-- Connection Configuration -->
+      <div class="connection-config" *ngIf="!connectionStatus.connected">
+        <h4>Connect to Schema Registry</h4>
+        <div class="form-group">
+          <label for="registryUrl">Registry URL:</label>
+          <input 
+            id="registryUrl"
+            type="text" 
+            [(ngModel)]="config.url" 
+            placeholder="/api/schema-registry"
+            class="form-control">
+        </div>
+        
+        <div class="form-group">
+          <label for="authType">Authentication:</label>
+          <select id="authType" [(ngModel)]="config.authentication.type" class="form-control">
+            <option value="none">None</option>
+            <option value="basic">Basic Auth</option>
+            <option value="apikey">API Key</option>
+          </select>
+        </div>
+        
+        <div class="form-group" *ngIf="config.authentication.type === 'basic'">
+          <label for="username">Username:</label>
+          <input 
+            id="username"
+            type="text" 
+            [(ngModel)]="config.authentication.username" 
+            class="form-control">
+          <label for="password">Password:</label>
+          <input 
+            id="password"
+            type="password" 
+            [(ngModel)]="config.authentication.password" 
+            class="form-control">
+        </div>
+        
+        <div class="form-group" *ngIf="config.authentication.type === 'apikey'">
+          <label for="apikey">API Key:</label>
+          <input 
+            id="apikey"
+            type="text" 
+            [(ngModel)]="config.authentication.apiKey" 
+            class="form-control">
+        </div>
+        
+        <button 
+          (click)="connect()" 
+          [disabled]="connecting"
+          class="btn btn-primary">
+          {{ connecting ? 'Connecting...' : 'Connect' }}
+        </button>
+      </div>
+      
+      <!-- Connection Status -->
+      <div class="connection-status" *ngIf="connectionStatus.connected">
+        <div class="status-success">
+          <h4>✅ Connected to Schema Registry</h4>
+          <p><strong>URL:</strong> {{ connectionStatus.url }}</p>
+          <p><strong>Version:</strong> {{ connectionStatus.version || 'Unknown' }}</p>
+          <p><strong>Mode:</strong> {{ connectionStatus.mode || 'Unknown' }}</p>
+          <p><strong>Last Checked:</strong> {{ connectionStatus.lastChecked | date:'medium' }}</p>
+        </div>
+        
+        <button (click)="disconnect()" class="btn btn-secondary">Disconnect</button>
+        <button (click)="testConnection()" class="btn btn-outline-primary">Test Connection</button>
+      </div>
+      
+      <!-- Error Display -->
+      <div class="connection-error" *ngIf="connectionStatus.error">
+        <div class="alert alert-danger">
+          <strong>Connection Error:</strong> {{ connectionStatus.error }}
+        </div>
+      </div>
+      
+      <!-- Registry Health -->
+      <div class="registry-health" *ngIf="connectionStatus.connected && health">
+        <h4>Registry Health</h4>
+        <div class="health-metrics">
+          <div class="metric">
+            <span class="label">Total Subjects:</span>
+            <span class="value">{{ health.subjectCount }}</span>
+          </div>
+          <div class="metric">
+            <span class="label">Status:</span>
+            <span class="value" [class.success]="health.connected" [class.error]="!health.connected">
+              {{ health.connected ? 'Healthy' : 'Unhealthy' }}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Quick Subject List -->
+      <div class="subjects-preview" *ngIf="connectionStatus.connected && subjects.length > 0">
+        <h4>Available Subjects</h4>
+        <div class="subjects-list">
+          <div 
+            class="subject-item" 
+            *ngFor="let subject of subjects.slice(0, 5)"
+            (click)="selectSubject(subject)">
+            <span class="subject-name">{{ subject.name }}</span>
+            <span class="version-count">{{ subject.versions.length || 0 }} versions</span>
+          </div>
+          <div *ngIf="subjects.length > 5" class="more-subjects">
+            ... and {{ subjects.length - 5 }} more subjects
+          </div>
+        </div>
+      </div>
+      
+      <!-- Selected Subject Details -->
+      <div class="subject-details" *ngIf="selectedSubject">
+        <h4>Subject: {{ selectedSubject.name }}</h4>
+        <div class="subject-info">
+          <p><strong>Latest Version:</strong> {{ selectedSubject.latestVersion }}</p>
+          <p><strong>Total Versions:</strong> {{ selectedSubject.versions.length }}</p>
+          <p><strong>Schema Type:</strong> {{ selectedSubject.schemaType }}</p>
+          
+          <div *ngIf="selectedSubject.evolutionSummary" class="evolution-summary">
+            <h5>Evolution Summary</h5>
+            <div class="evolution-metrics">
+              <div class="metric">
+                <span class="label">Total Changes:</span>
+                <span class="value">{{ selectedSubject.evolutionSummary.totalChanges }}</span>
+              </div>
+              <div class="metric">
+                <span class="label">Breaking Changes:</span>
+                <span class="value breaking" *ngIf="selectedSubject.evolutionSummary.breakingChanges > 0">
+                  {{ selectedSubject.evolutionSummary.breakingChanges }}
+                </span>
+                <span class="value safe" *ngIf="selectedSubject.evolutionSummary.breakingChanges === 0">
+                  0
+                </span>
+              </div>
+              <div class="metric">
+                <span class="label">Risk Level:</span>
+                <span 
+                  class="value"
+                  [class]="'risk-' + selectedSubject.evolutionSummary.riskLevel?.toLowerCase()">
+                  {{ selectedSubject.evolutionSummary.riskLevel }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <button (click)="clearSelection()" class="btn btn-sm btn-outline-secondary">
+          Clear Selection
+        </button>
+      </div>
+    </div>

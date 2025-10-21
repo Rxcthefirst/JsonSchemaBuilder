@@ -2,12 +2,12 @@ import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { JsonSchema } from '../../models/schema.models';
-import { MonacoEditorComponent } from '../monaco-editor/monaco-editor.component';
+// import { MonacoEditorComponent } from '../monaco-editor/monaco-editor.component';
 import { SampleDataGeneratorService, SampleGenerationOptions, SampleDataGenerationResult } from '../../services/sample-data-generator.service';
 
 @Component({
   selector: 'app-schema-preview',
-  imports: [CommonModule, FormsModule, MonacoEditorComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './schema-preview.component.html',
   styleUrl: './schema-preview.component.scss'
 })

@@ -14,7 +14,7 @@ import { NavigationService, BreadcrumbItem } from '../../services/navigation/nav
       <div class="breadcrumb-container">
         <ol class="breadcrumb-list">
           <li class="breadcrumb-item home">
-            <a routerLink="/editor" class="breadcrumb-link" title="Go to Schema Editor">
+            <a routerLink="/home" class="breadcrumb-link" title="Go to Home">
               <span class="breadcrumb-icon">🏠</span>
               <span class="breadcrumb-text">Home</span>
             </a>
@@ -93,7 +93,7 @@ import { NavigationService, BreadcrumbItem } from '../../services/navigation/nav
             
             <div class="quick-menu-section">
               <h4 class="quick-menu-title">Tools</h4>
-              <a routerLink="/editor" class="quick-menu-item">
+              <a routerLink="/schema-editor" class="quick-menu-item">
                 <span class="quick-item-icon">📝</span>
                 Schema Editor
               </a>

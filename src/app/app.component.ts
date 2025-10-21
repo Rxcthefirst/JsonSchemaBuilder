@@ -22,13 +22,13 @@ import { BreadcrumbsComponent } from './components/shared/breadcrumbs.component'
             <ul class="nav-links">
               <li>
                 <a 
-                  routerLink="/editor" 
+                  routerLink="/schema-editor" 
                   routerLinkActive="active"
                   class="nav-link"
-                  title="JSON Schema Builder"
+                  title="Modern Schema Registry Editor"
                 >
                   <span class="link-icon">📝</span>
-                  <span class="link-text">Schema Editor</span>
+                  Schema Editor
                 </a>
               </li>
             </ul>

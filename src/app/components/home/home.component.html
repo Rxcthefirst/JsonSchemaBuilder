@@ -1,0 +1,188 @@
+<div class="home-container">
+      <!-- Hero Section -->
+      <section class="hero">
+        <div class="hero-content">
+          <div class="hero-text">
+            <h1 class="hero-title">
+              Schema Registry Builder
+              <span class="version-badge">Phase 2</span>
+            </h1>
+            <p class="hero-description">
+              Create, evolve, and manage JSON Schemas for your Schema Registry with confidence. 
+              Our modern, registry-first approach makes schema evolution safe and predictable.
+            </p>
+            
+            <div class="hero-actions">
+              <button 
+                class="action-btn primary"
+                (click)="navigateToEditor()"
+              >
+                <span class="btn-icon">🚀</span>
+                Start Building Schemas
+              </button>
+              
+              <button 
+                class="action-btn secondary"
+                (click)="navigateToRegistry()"
+              >
+                <span class="btn-icon">📚</span>
+                Browse Registry
+              </button>
+            </div>
+          </div>
+          
+          <div class="hero-visual">
+            <div class="visual-card">
+              <div class="card-header">
+                <span class="card-title">🛠️ Modern Editor</span>
+              </div>
+              <div class="card-content">
+                <div class="feature-list">
+                  <div class="feature-item">✅ Registry-First Design</div>
+                  <div class="feature-item">✅ Evolution Management</div>
+                  <div class="feature-item">✅ Compatibility Analysis</div>
+                  <div class="feature-item">✅ Template Library</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature Grid -->
+      <section class="features">
+        <div class="features-content">
+          <h2 class="section-title">Everything You Need for Schema Management</h2>
+          
+          <div class="feature-grid">
+            
+            <!-- Schema Editor -->
+            <div class="feature-card" (click)="navigateToEditor()">
+              <div class="feature-icon">🛠️</div>
+              <h3 class="feature-title">Modern Schema Editor</h3>
+              <p class="feature-description">
+                Build schemas with templates, real-time validation, and registry-optimized workflows
+              </p>
+              <div class="feature-tags">
+                <span class="tag">Templates</span>
+                <span class="tag">Validation</span>
+                <span class="tag">Export</span>
+              </div>
+            </div>
+
+            <!-- Registry Browser -->
+            <div class="feature-card" (click)="navigateToRegistry()">
+              <div class="feature-icon">📚</div>
+              <h3 class="feature-title">Registry Browser</h3>
+              <p class="feature-description">
+                Explore, search, and manage all schemas in your Schema Registry with advanced filtering
+              </p>
+              <div class="feature-tags">
+                <span class="tag">Search</span>
+                <span class="tag">Filter</span>
+                <span class="tag">Metadata</span>
+              </div>
+            </div>
+
+            <!-- Schema Evolution -->
+            <div class="feature-card" (click)="navigateToEvolution()">
+              <div class="feature-icon">🔄</div>
+              <h3 class="feature-title">Schema Evolution</h3>
+              <p class="feature-description">
+                Safely evolve schemas with compatibility analysis and guided migration workflows
+              </p>
+              <div class="feature-tags">
+                <span class="tag">Compatibility</span>
+                <span class="tag">Migration</span>
+                <span class="tag">Analysis</span>
+              </div>
+            </div>
+
+            <!-- Version Management -->
+            <div class="feature-card" (click)="navigateToVersioning()">
+              <div class="feature-icon">📊</div>
+              <h3 class="feature-title">Version Management</h3>
+              <p class="feature-description">
+                Track schema versions, compare changes, and visualize evolution history
+              </p>
+              <div class="feature-tags">
+                <span class="tag">History</span>
+                <span class="tag">Compare</span>
+                <span class="tag">Timeline</span>
+              </div>
+            </div>
+
+            <!-- Compatibility Testing -->
+            <div class="feature-card" (click)="navigateToCompatibility()">
+              <div class="feature-icon">🔍</div>
+              <h3 class="feature-title">Compatibility Testing</h3>
+              <p class="feature-description">
+                Test schema compatibility before deployment with comprehensive analysis
+              </p>
+              <div class="feature-tags">
+                <span class="tag">Testing</span>
+                <span class="tag">Validation</span>
+                <span class="tag">Reports</span>
+              </div>
+            </div>
+
+            <!-- Legacy Editor -->
+            <div class="feature-card legacy" (click)="navigateToLegacyEditor()">
+              <div class="feature-icon">⚙️</div>
+              <h3 class="feature-title">Legacy Editor</h3>
+              <p class="feature-description">
+                Access the original schema builder for specialized use cases and comparison
+              </p>
+              <div class="feature-tags">
+                <span class="tag">Legacy</span>
+                <span class="tag">Fallback</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Phase Information -->
+      <section class="phase-info">
+        <div class="phase-content">
+          <div class="phase-card">
+            <div class="phase-header">
+              <span class="phase-badge">Phase 2 Complete</span>
+              <h3 class="phase-title">Registry & Evolution Management</h3>
+            </div>
+            <div class="phase-features">
+              <div class="phase-feature">
+                <span class="check-icon">✅</span>
+                <span>Subject Browser & Management</span>
+              </div>
+              <div class="phase-feature">
+                <span class="check-icon">✅</span>
+                <span>Version History & Comparison</span>
+              </div>
+              <div class="phase-feature">
+                <span class="check-icon">✅</span>
+                <span>Schema Evolution Wizard</span>
+              </div>
+              <div class="phase-feature">
+                <span class="check-icon">✅</span>
+                <span>Compatibility Analysis</span>
+              </div>
+              <div class="phase-feature">
+                <span class="check-icon">✅</span>
+                <span>Modern Registry-First Editor</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="phase-roadmap">
+            <h4 class="roadmap-title">Coming in Phase 3 & 4</h4>
+            <div class="roadmap-items">
+              <div class="roadmap-item">🎯 Advanced Schema Governance</div>
+              <div class="roadmap-item">🔐 Enterprise Security Features</div>
+              <div class="roadmap-item">📈 Analytics & Insights</div>
+              <div class="roadmap-item">🔌 Extended Integrations</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>

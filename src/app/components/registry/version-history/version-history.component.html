@@ -1,0 +1,286 @@
+<div class="version-history">
+      <div class="history-header">
+        <div class="breadcrumb">
+          <button class="back-btn" (click)="goBack()">← Back to Subject</button>
+          <span class="separator">/</span>
+          <span class="current-page">Version History</span>
+        </div>
+        
+        <div class="subject-info" *ngIf="subjectName">
+          <h1>{{ subjectName }}</h1>
+          <span class="version-count">{{ versions.length }} versions</span>
+        </div>
+      </div>
+
+      <div class="timeline-controls" *ngIf="!loading && !error && versions.length > 0">
+        <div class="view-options">
+          <button 
+            class="view-btn"
+            [class.active]="viewMode === 'timeline'"
+            (click)="viewMode = 'timeline'"
+          >
+            Timeline View
+          </button>
+          <button 
+            class="view-btn"
+            [class.active]="viewMode === 'table'"
+            (click)="viewMode = 'table'"
+          >
+            Table View
+          </button>
+          <button 
+            class="view-btn"
+            [class.active]="viewMode === 'diff'"
+            (click)="viewMode = 'diff'"
+          >
+            Diff View
+          </button>
+        </div>
+
+        <div class="filter-controls">
+          <select [(ngModel)]="selectedFilter" (change)="applyFilter()">
+            <option value="all">All Versions</option>
+            <option value="breaking">Breaking Changes Only</option>
+            <option value="nonbreaking">Non-Breaking Changes Only</option>
+            <option value="major">Major Changes</option>
+          </select>
+          
+          <div class="comparison-controls" *ngIf="viewMode === 'diff'">
+            <select [(ngModel)]="compareFromVersion" (change)="updateComparison()">
+              <option value="">From Version</option>
+              <option *ngFor="let version of versions" [value]="version.version">
+                v{{ version.version }}
+              </option>
+            </select>
+            <span class="vs">vs</span>
+            <select [(ngModel)]="compareToVersion" (change)="updateComparison()">
+              <option value="">To Version</option>
+              <option *ngFor="let version of versions" [value]="version.version">
+                v{{ version.version }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline View -->
+      <div class="timeline-view" *ngIf="viewMode === 'timeline' && !loading && !error">
+        <div class="timeline">
+          <div 
+            *ngFor="let version of filteredVersions; trackBy: trackByVersion"
+            class="timeline-item"
+            [class.has-breaking-changes]="version.changesSummary && version.changesSummary.breaking > 0"
+            [class.latest]="version.version === (versions[0] && versions[0].version)"
+          >
+            <div class="timeline-marker">
+              <div class="version-number">v{{ version.version }}</div>
+              <div class="timeline-line" *ngIf="version !== filteredVersions[filteredVersions.length - 1]"></div>
+            </div>
+            
+            <div class="timeline-content">
+              <div class="version-header">
+                <h3>Version {{ version.version }}</h3>
+                <div class="version-meta">
+                  <span class="version-id">ID: {{ version.id }}</span>
+                  <span class="version-date" *ngIf="version.createdAt">
+                    {{ version.createdAt | date:'medium' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="changes-summary" *ngIf="version.changesSummary">
+                <div class="change-stats">
+                  <span class="breaking-changes" *ngIf="version.changesSummary.breaking > 0">
+                    {{ version.changesSummary.breaking }} Breaking
+                  </span>
+                  <span class="non-breaking-changes" *ngIf="version.changesSummary.nonBreaking > 0">
+                    {{ version.changesSummary.nonBreaking }} Non-Breaking
+                  </span>
+                  <span class="total-changes">
+                    {{ version.changesSummary.total }} Total Changes
+                  </span>
+                </div>
+              </div>
+
+              <div class="evolution-details" *ngIf="version.evolutionAnalysis">
+                <div class="compatibility-status">
+                  <span 
+                    class="compatibility-indicator"
+                    [class.compatible]="version.evolutionAnalysis.isBackwardCompatible"
+                    [class.incompatible]="!version.evolutionAnalysis.isBackwardCompatible"
+                  >
+                    {{ version.evolutionAnalysis.isBackwardCompatible ? '✓ Compatible' : '⚠️ Breaking' }}
+                  </span>
+                </div>
+
+                <div class="key-changes" *ngIf="version.evolutionAnalysis.changes.length > 0">
+                  <div 
+                    *ngFor="let change of version.evolutionAnalysis.changes.slice(0, 3)"
+                    class="change-item"
+                    [class.breaking]="change.breaking"
+                  >
+                    <span class="change-type">{{ change.type }}</span>
+                    <span class="change-description">{{ change.description }}</span>
+                  </div>
+                  <div class="more-changes" *ngIf="version.evolutionAnalysis.changes.length > 3">
+                    +{{ version.evolutionAnalysis.changes.length - 3 }} more changes
+                  </div>
+                </div>
+              </div>
+
+              <div class="version-actions">
+                <button class="action-btn primary" (click)="viewVersionDetails(version)">
+                  View Schema
+                </button>
+                <button class="action-btn secondary" (click)="compareWithPrevious(version)"
+                        *ngIf="version !== versions[versions.length - 1]">
+                  Compare Previous
+                </button>
+                <button class="action-btn secondary" (click)="evolveFromVersion(version)">
+                  Evolve From This
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table View -->
+      <div class="table-view" *ngIf="viewMode === 'table' && !loading && !error">
+        <div class="versions-table">
+          <div class="table-header">
+            <div class="col-version">Version</div>
+            <div class="col-date">Date</div>
+            <div class="col-changes">Changes</div>
+            <div class="col-compatibility">Compatibility</div>
+            <div class="col-actions">Actions</div>
+          </div>
+          
+          <div 
+            *ngFor="let version of filteredVersions; trackBy: trackByVersion"
+            class="table-row"
+            [class.latest]="version.version === (versions[0] && versions[0].version)"
+          >
+            <div class="col-version">
+              <span class="version-number">v{{ version.version }}</span>
+              <span class="version-id">{{ version.id }}</span>
+            </div>
+            
+            <div class="col-date">
+              <span *ngIf="version.createdAt">{{ version.createdAt | date:'short' }}</span>
+              <span *ngIf="!version.createdAt" class="no-data">-</span>
+            </div>
+            
+            <div class="col-changes">
+              <div class="change-badges" *ngIf="version.changesSummary">
+                <span class="badge breaking" *ngIf="version.changesSummary.breaking > 0">
+                  {{ version.changesSummary.breaking }}
+                </span>
+                <span class="badge non-breaking" *ngIf="version.changesSummary.nonBreaking > 0">
+                  {{ version.changesSummary.nonBreaking }}
+                </span>
+              </div>
+              <span *ngIf="!version.changesSummary" class="no-data">-</span>
+            </div>
+            
+            <div class="col-compatibility">
+              <span 
+                *ngIf="version.evolutionAnalysis"
+                class="compatibility-status"
+                [class.compatible]="version.evolutionAnalysis.isBackwardCompatible"
+                [class.incompatible]="!version.evolutionAnalysis.isBackwardCompatible"
+              >
+                {{ version.evolutionAnalysis.isBackwardCompatible ? 'Compatible' : 'Breaking' }}
+              </span>
+              <span *ngIf="!version.evolutionAnalysis" class="no-data">-</span>
+            </div>
+            
+            <div class="col-actions">
+              <div class="table-actions">
+                <button class="mini-btn" (click)="viewVersionDetails(version)">View</button>
+                <button class="mini-btn" (click)="compareWithPrevious(version)"
+                        *ngIf="version !== versions[versions.length - 1]">Diff</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diff View -->
+      <div class="diff-view" *ngIf="viewMode === 'diff' && !loading && !error">
+        <div class="diff-container" *ngIf="comparisonResult">
+          <div class="diff-header">
+            <h3>Version Comparison</h3>
+            <div class="comparison-info">
+              Comparing v{{ compareFromVersion }} → v{{ compareToVersion }}
+            </div>
+          </div>
+          
+          <div class="diff-content">
+            <div class="schema-comparison">
+              <div class="schema-side">
+                <h4>Version {{ compareFromVersion }}</h4>
+                <pre class="schema-preview">{{ fromSchema }}</pre>
+              </div>
+              
+              <div class="changes-middle">
+                <div class="changes-summary">
+                  <div class="summary-stats">
+                    <span class="stat breaking" *ngIf="hasBreakingChanges(comparisonResult.changes)">
+                      {{ getBreakingChangesCount(comparisonResult.changes) }} Breaking
+                    </span>
+                    <span class="stat non-breaking">
+                      {{ getNonBreakingChangesCount(comparisonResult.changes) }} Non-Breaking
+                    </span>
+                  </div>
+                  
+                  <div class="changes-list">
+                    <div 
+                      *ngFor="let change of comparisonResult.changes"
+                      class="change-detail"
+                      [class.breaking]="change.breaking"
+                    >
+                      <span class="change-icon">{{ change.breaking ? '⚠️' : 'ℹ️' }}</span>
+                      <div class="change-info">
+                        <span class="change-type">{{ change.type }}</span>
+                        <span class="change-description">{{ change.description }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="schema-side">
+                <h4>Version {{ compareToVersion }}</h4>
+                <pre class="schema-preview">{{ toSchema }}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="no-comparison" *ngIf="!comparisonResult && compareFromVersion && compareToVersion">
+          <p>Select two different versions to compare schemas and see evolution changes.</p>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Loading version history...</p>
+      </div>
+
+      <!-- Error State -->
+      <div class="error-state" *ngIf="error">
+        <div class="error-icon">⚠️</div>
+        <h3>Error Loading Version History</h3>
+        <p>{{ error }}</p>
+        <button class="retry-btn" (click)="loadVersionHistory()">Retry</button>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!loading && !error && versions.length === 0">
+        <div class="empty-icon">📋</div>
+        <h3>No Versions Found</h3>
+        <p>This subject has no versions registered in the schema registry.</p>
+      </div>
+    </div>

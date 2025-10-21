@@ -1,0 +1,211 @@
+.registry-connection-panel {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 10px 0;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+    
+    .btn-primary:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-outline-primary {
+      background: transparent;
+      color: #007bff;
+      border: 1px solid #007bff;
+    }
+    
+    .btn-outline-secondary {
+      background: transparent;
+      color: #6c757d;
+      border: 1px solid #6c757d;
+    }
+    
+    .status-success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    
+    .alert {
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    
+    .alert-danger {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+    
+    .health-metrics, .evolution-metrics {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .metric {
+      display: flex;
+      flex-direction: column;
+      min-width: 120px;
+    }
+    
+    .metric .label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    
+    .metric .value {
+      font-weight: bold;
+      font-size: 16px;
+    }
+    
+    .value.success {
+      color: #28a745;
+    }
+    
+    .value.error {
+      color: #dc3545;
+    }
+    
+    .value.breaking {
+      color: #dc3545;
+    }
+    
+    .value.safe {
+      color: #28a745;
+    }
+    
+    .risk-low {
+      color: #28a745;
+    }
+    
+    .risk-medium {
+      color: #ffc107;
+    }
+    
+    .risk-high {
+      color: #fd7e14;
+    }
+    
+    .risk-critical {
+      color: #dc3545;
+    }
+    
+    .subjects-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+    }
+    
+    .subject-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .subject-item:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .subject-item:last-child {
+      border-bottom: none;
+    }
+    
+    .subject-name {
+      font-weight: 500;
+    }
+    
+    .version-count {
+      color: #666;
+      font-size: 12px;
+    }
+    
+    .more-subjects {
+      padding: 10px;
+      text-align: center;
+      color: #666;
+      font-style: italic;
+    }
+    
+    .subject-details {
+      background: white;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+    
+    .evolution-summary {
+      background: #f8f9fa;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    
+    h3, h4, h5 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    
+    h4 {
+      font-size: 18px;
+    }
+    
+    h5 {
+      font-size: 14px;
+      margin-bottom: 10px;
+    }

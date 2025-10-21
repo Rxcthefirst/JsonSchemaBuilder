@@ -1,17 +1,17 @@
 import { Routes } from '@angular/router';
 import { HomeComponent } from './components/home/home.component';
-import { SchemaEditorComponent } from './components/schema-editor/schema-editor.component';
-import { ModernSchemaEditorComponent } from './components/schema-editor/modern-schema-editor.component';
+// import { SchemaEditorComponent } from './components/schema-editor/schema-editor.component';
+import { ModernSchemaEditorComponent } from './components/modern-schema-editor/modern-schema-editor.component';
 
 // Phase 2 Registry Components
-import { SubjectBrowserComponent } from './components/registry/subject-browser.component';
-import { SubjectDetailsComponent } from './components/registry/subject-details.component';
-import { VersionHistoryComponent } from './components/registry/version-history.component';
+import { SubjectBrowserComponent } from './components/registry/subject-browser/subject-browser.component';
+import { SubjectDetailsComponent } from './components/registry/subject-details/subject-details.component';
+import { VersionHistoryComponent } from './components/registry/version-history/version-history.component';
 
 // Phase 2 Evolution Components  
-import { SchemaEvolutionWizardComponent } from './components/evolution/schema-evolution-wizard.component';
-import { VersionCompareComponent } from './components/evolution/version-compare.component';
-import { CompatibilityCheckerComponent } from './components/evolution/compatibility-checker.component';
+import { SchemaEvolutionWizardComponent } from './components/evolution/schema-evolution-wizard/schema-evolution-wizard.component';
+import { VersionCompareComponent } from './components/evolution/version-compare/version-compare.component';
+import { CompatibilityCheckerComponent } from './components/evolution/compatibility-checker/compatibility-checker.component';
 
 export const routes: Routes = [
   { 
@@ -35,11 +35,11 @@ export const routes: Routes = [
   },
   
   // Legacy Editor (for comparison/fallback)
-  { 
-    path: 'editor', 
-    component: SchemaEditorComponent,
-    title: 'JSON Schema Builder (Legacy)'
-  },
+  // { 
+  //   path: 'editor', 
+  //   component: SchemaEditorComponent,
+  //   title: 'JSON Schema Builder (Legacy)'
+  // },
   
   // Phase 2 - Schema Registry Management
   {
@@ -113,6 +113,6 @@ export const routes: Routes = [
   // Wildcard route - keep this last
   { 
     path: '**', 
-    redirectTo: '/editor' 
+    redirectTo: '/home' 
   }
 ];
