@@ -1,6 +1,6 @@
 const PROXY_CONFIG = {
   '/api/schema-registry/**': {
-    target: 'http://3.239.17.32:8081',
+    target: 'https://d3ej5qtqlefebd.cloudfront.net',
     secure: false,
     changeOrigin: true,
     logLevel: 'debug',
@@ -8,8 +8,8 @@ const PROXY_CONFIG = {
       '^/api/schema-registry': ''
     },
     onProxyReq: function(proxyReq, req, res) {
-      console.log('Proxying request:', req.url, '-> http://3.239.17.32:8081' + req.url.replace('/api/schema-registry', ''));
-    },
+          console.log('Proxying request:', req.url, '-> https://d3ej5qtqlefebd.cloudfront.net' + req.url.replace('/api/schema-registry', ''));
+        },
     onError: function(err, req, res) {
       console.error('Proxy error:', err);
     }

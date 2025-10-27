@@ -1,6 +1,6 @@
 {
   "/api/schema-registry/**": {
-    "target": "http://localhost:8081",
+    "target": "https://d3ej5qtqlefebd.cloudfront.net",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug",
