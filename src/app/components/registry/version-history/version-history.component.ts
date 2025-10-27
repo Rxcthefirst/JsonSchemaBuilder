@@ -223,8 +223,12 @@ export class VersionHistoryComponent implements OnInit, OnDestroy {
   }
 
   evolveFromVersion(version: VersionWithAnalysis): void {
-    this.router.navigate(['/registry/evolve', this.subjectName], {
-      queryParams: { fromVersion: version.version }
+    this.router.navigate(['/evolution/wizard'], {
+      queryParams: { 
+        subject: this.subjectName,
+        fromVersion: version.version,
+        mode: 'evolve'
+      }
     });
   }
 

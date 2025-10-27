@@ -259,7 +259,25 @@ export class SubjectDetailsComponent implements OnInit, OnDestroy {
   evolveSchema(): void {
     if (!this.subjectDetail) return;
     
-    this.router.navigate(['/registry/evolve', this.subjectDetail.name]);
+    this.router.navigate(['/evolution/wizard'], {
+      queryParams: { 
+        subject: this.subjectDetail.name,
+        fromVersion: this.subjectDetail.latestVersion.version,
+        mode: 'evolve'
+      }
+    });
+  }
+
+  evolveFromVersion(version: SchemaVersion): void {
+    if (!this.subjectDetail) return;
+    
+    this.router.navigate(['/evolution/wizard'], {
+      queryParams: { 
+        subject: this.subjectDetail.name,
+        fromVersion: version.version,
+        mode: 'evolve'
+      }
+    });
   }
 
   testCompatibility(): void {

@@ -952,4 +952,49 @@ Click "Publish to Registry" to actually register this schema.
     if (typeof value === 'object' && value !== null) return PropertyType.OBJECT;
     return PropertyType.STRING;
   }
+
+  // Schema type detection methods
+  getDetectedSchemaType(): string {
+    if (!this.schemaJSON || this.schemaJSON.trim() === '') {
+      return '';
+    }
+
+    try {
+      // Try parsing as JSON first
+      const parsed = JSON.parse(this.schemaJSON);
+      
+      // Check for JSON Schema indicators
+      if (parsed.$schema || parsed.properties || (parsed.type && typeof parsed.type === 'string' && ['object', 'array', 'string', 'number', 'boolean', 'null'].includes(parsed.type))) {
+        return 'JSON Schema';
+      }
+      
+      // Check for Avro indicators
+      if (parsed.type && typeof parsed.type === 'string' && ['record', 'enum', 'array', 'map', 'union', 'fixed'].includes(parsed.type)) {
+        return 'AVRO';
+      }
+      
+      return 'JSON Schema'; // Default for valid JSON
+    } catch {
+      // If it's not valid JSON, check for Protobuf patterns
+      if (this.schemaJSON.includes('syntax = "proto') || 
+          this.schemaJSON.includes('message ') || 
+          this.schemaJSON.includes('service ')) {
+        return 'PROTOBUF';
+      }
+      return '';
+    }
+  }
+
+  getSchemaTypeIcon(schemaType: string): string {
+    switch (schemaType) {
+      case 'AVRO':
+        return '🔶';
+      case 'PROTOBUF':
+        return '⚡';
+      case 'JSON Schema':
+        return '📋';
+      default:
+        return '📄';
+    }
+  }
 }

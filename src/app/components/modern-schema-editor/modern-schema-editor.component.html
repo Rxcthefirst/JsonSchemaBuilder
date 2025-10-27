@@ -9,7 +9,7 @@
           Schema Registry Editor
         </h1>
         <p class="editor-subtitle">
-          Create, evolve, and manage JSON Schemas for your Schema Registry
+          Create, evolve, and manage schemas (JSON, Avro, Protobuf) for your Schema Registry
         </p>
         <div class="workflow-help">
           <strong>Quick Start:</strong> 
@@ -189,7 +189,15 @@
       <div class="main-editor-panel">
         <div class="json-editor-panel">
           <div class="editor-header">
-            <h4>JSON Schema Definition</h4>
+            <div class="editor-title-section">
+              <h4>Schema Definition</h4>
+              <span class="detected-type" [class]="'type-' + getDetectedSchemaType().toLowerCase().replace(' ', '-')" *ngIf="getDetectedSchemaType()">
+                {{ getSchemaTypeIcon(getDetectedSchemaType()) }} {{ getDetectedSchemaType() }}
+              </span>
+            </div>
+            <div class="schema-type-info">
+              <span class="schema-type-label">Supports: JSON Schema, Avro, Protobuf</span>
+            </div>
             <div class="editor-actions">
               <button class="editor-btn" (click)="formatJSON()">Format</button>
               <button class="editor-btn" (click)="addProperty()">+ Property</button>
@@ -202,7 +210,30 @@
               class="json-textarea"
               [(ngModel)]="schemaJSON"
               (ngModelChange)="onSchemaChange($event)"
-              placeholder="Your JSON Schema will appear here..."
+              placeholder="Enter your schema definition here...
+
+Examples:
+
+📋 JSON Schema:
+{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;name&quot;: { &quot;type&quot;: &quot;string&quot; }
+  }
+}
+
+🔶 Avro Schema:
+{
+  &quot;type&quot;: &quot;record&quot;,
+  &quot;name&quot;: &quot;User&quot;,
+  &quot;fields&quot;: [{&quot;name&quot;: &quot;id&quot;, &quot;type&quot;: &quot;string&quot;}]
+}
+
+⚡ Protobuf Schema:
+syntax = &quot;proto3&quot;;
+message User {
+  string id = 1;
+}"
               spellcheck="false"
             ></textarea>
           </div>
