@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError, of, timer } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { map, catchError, retry, retryWhen, delayWhen, take, timeout, switchMap } from 'rxjs/operators';
 import {
   RegistryConfig,
@@ -41,11 +42,11 @@ export class SchemaRegistryService {
   }
 
   /**
-   * Initialize with default localhost configuration based on README
+   * Initialize with environment-specific configuration
    */
   private initializeDefaultConfig(): void {
     const defaultConfig: RegistryConfig = {
-      url: '/api/schema-registry',
+      url: environment.schemaRegistryUrl,
       authentication: {
         type: 'none'
       },

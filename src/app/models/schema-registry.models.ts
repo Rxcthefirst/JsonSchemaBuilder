@@ -223,9 +223,13 @@ export interface PublishResult {
 
 // Default configurations
 export const DEFAULT_REGISTRY_CONFIG: Partial<RegistryConfig> = {
+  url: '/api/schema-registry', // Default proxy URL for development
   timeout: 30000,
   retryAttempts: 3,
-  defaultCompatibilityLevel: 'BACKWARD'
+  defaultCompatibilityLevel: 'BACKWARD',
+  authentication: {
+    type: 'none'
+  }
 };
 
 export const COMPATIBILITY_LEVELS: { value: CompatibilityLevel; label: string; description: string }[] = [
