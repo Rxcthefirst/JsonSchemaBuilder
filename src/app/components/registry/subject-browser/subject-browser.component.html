@@ -68,9 +68,14 @@
           >
             <div class="subject-header">
               <h3 class="subject-name">{{ subject.name }}</h3>
-              <span class="compatibility-badge" [attr.data-level]="subject.compatibility">
-                {{ subject.compatibility }}
-              </span>
+              <div class="subject-badges">
+                <span class="schema-type-badge" [attr.data-type]="subject.schemaType">
+                  {{ subject.schemaType }}
+                </span>
+                <span class="compatibility-badge" [attr.data-level]="subject.compatibility">
+                  {{ subject.compatibility }}
+                </span>
+              </div>
             </div>
             
             <div class="subject-info">
@@ -84,7 +89,10 @@
               </div>
               <div class="info-item">
                 <span class="label">Schema Type:</span>
-                <span class="value">{{ subject.schemaType }}</span>
+                <span class="value schema-type-text" [attr.data-type]="subject.schemaType">
+                  <span class="schema-icon">{{ getSchemaIcon(subject.schemaType) }}</span>
+                  {{ subject.schemaType }}
+                </span>
               </div>
               <div class="info-item">
                 <span class="label">Last Modified:</span>

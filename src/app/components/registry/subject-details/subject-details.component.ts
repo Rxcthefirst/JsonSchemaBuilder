@@ -11,7 +11,8 @@ import {
   Subject as RegistrySubject, 
   SchemaVersion, 
   CompatibilityLevel,
-  SubjectVersionResponse 
+  SubjectVersionResponse,
+  detectSchemaType 
 } from '../../../models/schema-registry.models';
 
 interface SubjectDetail {
@@ -108,13 +109,16 @@ export class SubjectDetailsComponent implements OnInit, OnDestroy {
       const sortedVersions = versions.sort((a, b) => b.version - a.version);
       const latestVersion = sortedVersions[0];
 
+      // Detect schema type from the latest version
+      const detectedSchemaType = latestVersion ? detectSchemaType(latestVersion.schema) : 'JSON';
+
       this.subjectDetail = {
         name: this.subjectName,
         versions: sortedVersions,
         latestVersion,
         compatibility,
         totalVersions: versions.length,
-        schemaType: latestVersion.schemaType || 'JSON',
+        schemaType: detectedSchemaType,
         createdAt: new Date(), // Would come from registry metadata
         updatedAt: new Date()  // Would come from registry metadata
       };

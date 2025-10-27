@@ -33,6 +33,51 @@ export type CompatibilityLevel =
 // Schema types supported by Schema Registry
 export type SchemaType = 'AVRO' | 'JSON' | 'PROTOBUF';
 
+// Schema format mappings for better type detection
+export const SCHEMA_TYPE_MAPPINGS = {
+  'application/vnd.apache.avro+json': 'AVRO',
+  'application/vnd.google.protobuf': 'PROTOBUF', 
+  'application/vnd.apache.avro': 'AVRO',
+  'application/json': 'JSON',
+  'application/schema+json': 'JSON'
+} as const;
+
+// Utility function to detect schema type from content
+export function detectSchemaType(schema: string | object): SchemaType {
+  try {
+    const schemaObj = typeof schema === 'string' ? JSON.parse(schema) : schema;
+    
+    // Check for Avro schema indicators
+    if (schemaObj.type && typeof schemaObj.type === 'string' && 
+        ['record', 'enum', 'array', 'map', 'union', 'fixed'].includes(schemaObj.type)) {
+      return 'AVRO';
+    }
+    
+    // Check for Protobuf indicators (if it's not JSON parseable or has proto syntax)
+    if (typeof schema === 'string' && 
+        (schema.includes('syntax = "proto') || schema.includes('message ') || schema.includes('service '))) {
+      return 'PROTOBUF';
+    }
+    
+    // Check for JSON Schema indicators
+    if (schemaObj.$schema || schemaObj.properties || schemaObj.type || 
+        schemaObj.allOf || schemaObj.anyOf || schemaObj.oneOf) {
+      return 'JSON';
+    }
+    
+    // Default to JSON if uncertain
+    return 'JSON';
+  } catch (error) {
+    // If parsing fails, try to detect from string patterns
+    if (typeof schema === 'string') {
+      if (schema.includes('syntax = "proto') || schema.includes('message ')) {
+        return 'PROTOBUF';
+      }
+    }
+    return 'JSON'; // Default fallback
+  }
+}
+
 // Subject information from Schema Registry
 export interface Subject {
   name: string;

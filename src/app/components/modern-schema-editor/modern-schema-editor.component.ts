@@ -443,7 +443,17 @@ export class ModernSchemaEditorComponent implements OnInit, OnDestroy {
   }
 
   checkRegistryStatus(): void {
-    console.log('Checking registry status...');
+    this.registryService.testConnection().subscribe({
+      next: (status) => {
+        const message = status.connected 
+          ? `Connected to ${status.url}\nVersion: ${status.version || 'Unknown'}` 
+          : `Connection failed: ${status.error}`;
+        alert(message);
+      },
+      error: (error) => {
+        alert(`Registry check failed: ${error.message}`);
+      }
+    });
   }
 
   // Template Management

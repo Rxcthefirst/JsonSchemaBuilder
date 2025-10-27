@@ -18,7 +18,9 @@ import {
   PublishConfig,
   PublishResult,
   DEFAULT_REGISTRY_CONFIG,
-  isRegistryError
+  isRegistryError,
+  detectSchemaType,
+  SchemaType
 } from '../../models/schema-registry.models.js';
 import { JsonSchema } from '../../models/schema.models.js';
 
@@ -130,14 +132,31 @@ export class SchemaRegistryService {
    */
   getSubjectDetails(subjectName: string): Observable<Subject> {
     return this.getSubjectVersions(subjectName).pipe(
-      map((versions: number[]) => {
-        const subject: Subject = {
-          name: subjectName,
-          versions,
-          schemaType: 'JSON', // We're focusing on JSON schemas
-          latestVersion: versions.length > 0 ? Math.max(...versions) : undefined
-        };
-        return subject;
+      switchMap((versions: number[]) => {
+        if (versions.length === 0) {
+          const subject: Subject = {
+            name: subjectName,
+            versions,
+            schemaType: 'JSON', // Default when no versions
+            latestVersion: undefined
+          };
+          return of(subject);
+        }
+
+        // Get the latest version to determine schema type
+        const latestVersion = Math.max(...versions);
+        return this.getSchemaVersion(subjectName, latestVersion).pipe(
+          map((latestSchema: SchemaVersion) => {
+            const detectedType = detectSchemaType(latestSchema.schema);
+            const subject: Subject = {
+              name: subjectName,
+              versions,
+              schemaType: detectedType,
+              latestVersion
+            };
+            return subject;
+          })
+        );
       })
     );
   }
@@ -156,25 +175,33 @@ export class SchemaRegistryService {
     return this.makeRequest<SubjectVersionResponse>(
       `/subjects/${encodeURIComponent(subjectName)}/versions/${version}`
     ).pipe(
-      map((response: SubjectVersionResponse) => ({
-        id: response.id,
-        version: response.version,
-        subject: response.subject,
-        schema: response.schema,
-        schemaType: response.schemaType,
-        references: response.references || [],
-        createdAt: new Date() // Schema Registry doesn't provide creation date by default
-      }))
+      map((response: SubjectVersionResponse) => {
+        // Detect the actual schema type from the content
+        const detectedType = detectSchemaType(response.schema);
+        
+        return {
+          id: response.id,
+          version: response.version,
+          subject: response.subject,
+          schema: response.schema,
+          schemaType: detectedType, // Use detected type instead of response type
+          references: response.references || [],
+          createdAt: new Date() // Schema Registry doesn't provide creation date by default
+        };
+      })
     );
   }
 
   /**
-   * Register a new JSON Schema
+   * Register a new schema (supports JSON, Avro, Protobuf)
    */
-  registerJsonSchema(config: PublishConfig): Observable<PublishResult> {
+  registerSchema(config: PublishConfig): Observable<PublishResult> {
+    // Detect schema type from content
+    const detectedType = detectSchemaType(config.schema);
+    
     const payload = {
-      schemaType: 'JSON',
-      schema: JSON.stringify(config.schema),
+      schemaType: detectedType,
+      schema: typeof config.schema === 'string' ? config.schema : JSON.stringify(config.schema),
       references: config.references || [],
       metadata: config.metadata
     };
@@ -205,6 +232,13 @@ export class SchemaRegistryService {
   }
 
   /**
+   * Register a new JSON Schema (legacy method, now uses registerSchema)
+   */
+  registerJsonSchema(config: PublishConfig): Observable<PublishResult> {
+    return this.registerSchema(config);
+  }
+
+  /**
    * Perform the actual schema registration
    */
   private performRegistration(subject: string, payload: any): Observable<PublishResult> {
@@ -228,10 +262,12 @@ export class SchemaRegistryService {
   /**
    * Check schema compatibility
    */
-  checkCompatibility(subjectName: string, schema: JsonSchema, version: number | 'latest' = 'latest'): Observable<CompatibilityCheckResponse> {
+  checkCompatibility(subjectName: string, schema: JsonSchema | string, version: number | 'latest' = 'latest'): Observable<CompatibilityCheckResponse> {
+    const detectedType = detectSchemaType(schema);
+    
     const payload = {
-      schemaType: 'JSON',
-      schema: JSON.stringify(schema)
+      schemaType: detectedType,
+      schema: typeof schema === 'string' ? schema : JSON.stringify(schema)
     };
 
     return this.makeRequest<CompatibilityCheckResponse>(

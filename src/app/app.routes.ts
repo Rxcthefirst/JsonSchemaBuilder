@@ -34,12 +34,12 @@ export const routes: Routes = [
     title: 'Schema Registry Editor'
   },
   
-  // Legacy Editor (for comparison/fallback)
-  // { 
-  //   path: 'editor', 
-  //   component: SchemaEditorComponent,
-  //   title: 'JSON Schema Builder (Legacy)'
-  // },
+  // Legacy Editor route (redirect to modern editor for now)
+  { 
+    path: 'editor', 
+    redirectTo: '/schema-editor',
+    pathMatch: 'full'
+  },
   
   // Phase 2 - Schema Registry Management
   {

@@ -162,6 +162,36 @@
       color: #333;
     }
 
+    .subject-badges {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .schema-type-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      border: 1px solid;
+    }
+
+    .schema-type-badge[data-type="JSON"] { 
+      background: #e3f2fd; 
+      color: #1976d2; 
+      border-color: #1976d2;
+    }
+    .schema-type-badge[data-type="AVRO"] { 
+      background: #fff3e0; 
+      color: #f57c00; 
+      border-color: #f57c00;
+    }
+    .schema-type-badge[data-type="PROTOBUF"] { 
+      background: #f3e5f5; 
+      color: #7b1fa2; 
+      border-color: #7b1fa2;
+    }
+
     .compatibility-badge {
       padding: 4px 8px;
       border-radius: 12px;
@@ -195,6 +225,20 @@
     .info-item .value {
       font-size: 14px;
       color: #333;
+    }
+
+    .schema-type-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .schema-type-text[data-type="JSON"] { color: #1976d2; }
+    .schema-type-text[data-type="AVRO"] { color: #f57c00; }
+    .schema-type-text[data-type="PROTOBUF"] { color: #7b1fa2; }
+
+    .schema-icon {
+      font-size: 16px;
     }
 
     .subject-actions {

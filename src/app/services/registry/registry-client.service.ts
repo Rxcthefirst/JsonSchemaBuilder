@@ -9,7 +9,9 @@ import {
   EvolutionAnalysis,
   PublishConfig,
   PublishResult,
-  CompatibilityLevel
+  CompatibilityLevel,
+  SchemaType,
+  detectSchemaType
 } from '../../models/schema-registry.models.js';
 import { JsonSchema } from '../../models/schema.models.js';
 
@@ -83,8 +85,12 @@ export class RegistryClientService {
 
   /**
    * Publish schema with comprehensive validation and evolution analysis
+   * Now supports all schema types (JSON, Avro, Protobuf)
    */
   publishSchemaWithAnalysis(config: PublishConfig): Observable<PublishResult & { evolution?: EvolutionAnalysis }> {
+    // Detect schema type from content
+    const schemaType = detectSchemaType(config.schema);
+    
     // First check if subject exists and get latest version for evolution analysis
     return this.registryService.getSubjects().pipe(
       switchMap((subjects: string[]) => {
@@ -92,9 +98,19 @@ export class RegistryClientService {
           // Subject exists, get latest version for comparison
           return this.registryService.getSchemaVersion(config.subject, 'latest').pipe(
             map((latestVersion: SchemaVersion) => {
-              const existingSchema: JsonSchema = JSON.parse(latestVersion.schema);
-              const evolution = this.compatibilityService.analyzeEvolution(existingSchema, config.schema as JsonSchema);
-              return { existingSchema, evolution };
+              let evolution: EvolutionAnalysis | null = null;
+              
+              // Only perform evolution analysis for JSON schemas
+              if (schemaType === 'JSON' && latestVersion.schemaType === 'JSON') {
+                try {
+                  const existingSchema: JsonSchema = JSON.parse(latestVersion.schema);
+                  evolution = this.compatibilityService.analyzeEvolution(existingSchema, config.schema as JsonSchema);
+                } catch (error) {
+                  console.warn('Could not parse existing schema for evolution analysis:', error);
+                }
+              }
+              
+              return { existingSchema: latestVersion.schema, evolution };
             }),
             catchError(() => of({ existingSchema: null, evolution: null }))
           );
@@ -104,8 +120,8 @@ export class RegistryClientService {
         }
       }),
       switchMap(({ existingSchema, evolution }) => {
-        // Proceed with registration
-        return this.registryService.registerJsonSchema(config).pipe(
+        // Use the new registerSchema method that handles all schema types
+        return this.registryService.registerSchema(config).pipe(
           map((result: PublishResult) => ({
             ...result,
             evolution: evolution || undefined
@@ -117,49 +133,74 @@ export class RegistryClientService {
 
   /**
    * Validate schema against a specific compatibility level
+   * Now supports different schema types
    */
   validateSchemaCompatibility(
     subjectName: string, 
-    schema: JsonSchema, 
+    schema: JsonSchema | string, 
     compatibilityLevel: CompatibilityLevel = 'BACKWARD'
-  ): Observable<{ isCompatible: boolean; analysis?: EvolutionAnalysis; errors: string[] }> {
+  ): Observable<{ isCompatible: boolean; analysis?: EvolutionAnalysis; errors: string[]; schemaType: SchemaType }> {
+    const schemaType = detectSchemaType(schema);
+    
     return this.registryService.getSubjects().pipe(
       switchMap((subjects: string[]) => {
         if (!subjects.includes(subjectName)) {
           // New subject, no compatibility issues
           return of({
             isCompatible: true,
-            errors: []
+            errors: [],
+            schemaType
           });
         }
 
         // Get latest version and compare
         return this.registryService.getSchemaVersion(subjectName, 'latest').pipe(
           map((latestVersion: SchemaVersion) => {
-            const existingSchema: JsonSchema = JSON.parse(latestVersion.schema);
-            const evolution = this.compatibilityService.analyzeEvolution(existingSchema, schema);
-            
-            // Check if changes are compatible with the specified level
-            const isCompatible = this.compatibilityService.checkCompatibilityLevel(
-              evolution.changes, 
-              compatibilityLevel
-            );
-
+            let isCompatible = true;
+            let analysis: EvolutionAnalysis | undefined;
             const errors: string[] = [];
-            if (!isCompatible) {
-              const breakingChanges = evolution.changes.filter(c => c.breaking);
-              errors.push(...breakingChanges.map(c => c.description));
+
+            // Only perform detailed analysis for JSON schemas
+            if (schemaType === 'JSON' && latestVersion.schemaType === 'JSON') {
+              try {
+                const existingSchema: JsonSchema = JSON.parse(latestVersion.schema);
+                const newSchema: JsonSchema = typeof schema === 'string' ? JSON.parse(schema) : schema;
+                analysis = this.compatibilityService.analyzeEvolution(existingSchema, newSchema);
+                
+                // Check if changes are compatible with the specified level
+                isCompatible = this.compatibilityService.checkCompatibilityLevel(
+                  analysis.changes, 
+                  compatibilityLevel
+                );
+
+                if (!isCompatible) {
+                  const breakingChanges = analysis.changes.filter(c => c.breaking);
+                  errors.push(...breakingChanges.map(c => c.description));
+                }
+              } catch (error) {
+                isCompatible = false;
+                errors.push(`Failed to parse schema: ${error}`);
+              }
+            } else if (schemaType !== latestVersion.schemaType) {
+              // Different schema types are generally incompatible
+              isCompatible = false;
+              errors.push(`Schema type mismatch: existing is ${latestVersion.schemaType}, new is ${schemaType}`);
+            } else {
+              // For non-JSON schemas, we can't do detailed analysis yet
+              console.warn(`Detailed compatibility analysis not yet supported for ${schemaType} schemas`);
             }
 
             return {
               isCompatible,
-              analysis: evolution,
-              errors
+              analysis,
+              errors,
+              schemaType
             };
           }),
           catchError((error) => of({
             isCompatible: false,
-            errors: [`Failed to validate compatibility: ${error.message}`]
+            errors: [`Failed to validate compatibility: ${error.message}`],
+            schemaType
           }))
         );
       })

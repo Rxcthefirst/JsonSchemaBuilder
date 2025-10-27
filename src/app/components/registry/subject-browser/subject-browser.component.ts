@@ -6,7 +6,7 @@ import { Subject as RxSubject, BehaviorSubject, debounceTime, distinctUntilChang
 
 import { SchemaRegistryService } from '../../../services/registry/schema-registry.service';
 import { RegistryClientService } from '../../../services/registry/registry-client.service';
-import { Subject as RegistrySubject, SchemaVersion, CompatibilityLevel } from '../../../models/schema-registry.models';
+import { Subject as RegistrySubject, SchemaVersion, CompatibilityLevel, detectSchemaType } from '../../../models/schema-registry.models';
 
 interface SubjectWithMetadata {
   name: string;
@@ -108,13 +108,16 @@ export class SubjectBrowserComponent implements OnInit, OnDestroy {
               console.warn(`Could not get compatibility for ${subjectName}, using default`);
             }
 
+            // Detect actual schema type from the schema content
+            const schemaType = latestSchema ? detectSchemaType(latestSchema.schema) : 'JSON';
+
             return {
               name: subjectName,
               latestVersion,
               totalVersions: versions.length,
               compatibility,
               lastModified: new Date().toISOString(), // Would come from registry metadata
-              schemaType: 'JSON' // Would be parsed from schema
+              schemaType
             };
           } catch (error) {
             console.error(`Error loading details for subject ${subjectName}:`, error);
@@ -124,7 +127,7 @@ export class SubjectBrowserComponent implements OnInit, OnDestroy {
               totalVersions: 1,
               compatibility: 'BACKWARD' as CompatibilityLevel,
               lastModified: new Date().toISOString(),
-              schemaType: 'JSON'
+              schemaType: 'JSON' // Default to JSON for error cases
             };
           }
         })
@@ -175,6 +178,19 @@ export class SubjectBrowserComponent implements OnInit, OnDestroy {
     this.selectedType = '';
     this.searchSubject.next('');
     this.applyFilters();
+  }
+
+  getSchemaIcon(schemaType: string): string {
+    switch (schemaType) {
+      case 'AVRO':
+        return '🔶';
+      case 'PROTOBUF':
+        return '⚡';
+      case 'JSON':
+        return '📋';
+      default:
+        return '📄';
+    }
   }
 
   trackBySubjectName(index: number, subject: SubjectWithMetadata): string {
