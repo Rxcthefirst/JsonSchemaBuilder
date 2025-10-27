@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, effect, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -24,7 +24,8 @@ import {
 } from '../../models/schema.models';
 import { 
   SchemaVersion,
-  CompatibilityLevel
+  CompatibilityLevel,
+  PublishConfig
 } from '../../models/schema-registry.models';
 
 interface EditorMode {
@@ -235,7 +236,8 @@ export class ModernSchemaEditorComponent implements OnInit, OnDestroy {
     private compatibilityService: JsonSchemaCompatibilityService,
     private evolutionService: JsonSchemaEvolutionService,
     public globalState: GlobalSchemaStateService,
-    private validationService: SchemaValidationService
+    private validationService: SchemaValidationService,
+    private cdr: ChangeDetectorRef
   ) {
     this.schemaForm = this.formBuilder.group({
       subjectName: ['', Validators.required],
@@ -245,6 +247,18 @@ export class ModernSchemaEditorComponent implements OnInit, OnDestroy {
       compatibilityLevel: ['BACKWARD'],
       enableValidation: [true],
       generateDocumentation: [false]
+    });
+
+    // Subscribe to global schema state using effect (must be in injection context)
+    effect(() => {
+      const state = this.globalState.state();
+      this.updateFormFromState(state);
+      this.showPreview = state.showPreview;
+      this.validationResult = {
+        isValid: state.isValid,
+        errors: state.validationErrors,
+        warnings: []
+      };
     });
   }
 
@@ -259,18 +273,11 @@ export class ModernSchemaEditorComponent implements OnInit, OnDestroy {
   }
 
   private initializeEditor(): void {
-    // Subscribe to global schema state using effect
-    effect(() => {
-      const state = this.globalState.state();
-      this.updateFormFromState(state);
-      this.selectedMode = state.activeMode ? this.getModeFromState(state.activeMode) : null;
-      this.showPreview = state.showPreview;
-      this.validationResult = {
-        isValid: state.isValid,
-        errors: state.validationErrors,
-        warnings: []
-      };
-    });
+    // Start in create mode by default to show editor immediately
+    this.selectedMode = this.availableModes.find(mode => mode.mode === 'create') || null;
+    
+    // Initialize with a basic schema template
+    this.initializeBasicSchema();
 
     // Listen for schema form changes
     this.schemaForm.valueChanges
@@ -284,10 +291,94 @@ export class ModernSchemaEditorComponent implements OnInit, OnDestroy {
       });
   }
 
+  private initializeBasicSchema(): void {
+    // Initialize with a comprehensive Draft 2020-12 example schema for testing
+    const personSchema: JsonSchema = {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      $id: 'https://example.com/person.schema.json',
+      title: 'Person Schema - Draft 2020-12',
+      description: 'A comprehensive schema demonstrating Draft 2020-12 features',
+      type: PropertyType.OBJECT,
+      properties: {
+        name: {
+          type: 'string' as any,
+          minLength: 1,
+          maxLength: 100,
+          examples: ['John Doe', 'Jane Smith']
+        },
+        age: {
+          type: 'integer' as any,
+          minimum: 0,
+          maximum: 150,
+          description: 'Age in years'
+        },
+        emails: {
+          type: 'array' as any,
+          prefixItems: [
+            { type: 'string' as any, format: 'email', description: 'Primary email' },
+            { type: 'string' as any, format: 'email', description: 'Secondary email' }
+          ],
+          unevaluatedItems: false,
+          minItems: 1
+        },
+        address: {
+          type: 'object' as any,
+          properties: {
+            street: { type: 'string' as any },
+            city: { type: 'string' as any },
+            zipCode: { type: 'string' as any, pattern: '^[0-9]{5}(-[0-9]{4})?$' }
+          },
+          required: ['street', 'city'],
+          unevaluatedProperties: false
+        },
+        status: {
+          oneOf: [
+            { const: 'active' },
+            { const: 'inactive' },
+            { const: 'pending' }
+          ]
+        }
+      } as any,
+      required: ['name', 'age'],
+      dependentRequired: {
+        emails: ['name']
+      },
+      unevaluatedProperties: false,
+      examples: [
+        {
+          name: 'John Doe',
+          age: 30,
+          emails: ['john@example.com'],
+          address: {
+            street: '123 Main St',
+            city: 'Anytown',
+            zipCode: '12345'
+          },
+          status: 'active'
+        }
+      ]
+    };
+    
+    this.schemaJSON = JSON.stringify(personSchema, null, 2);
+    this.globalState.loadSchema(personSchema);
+    
+    // Pre-populate form with reasonable defaults
+    this.schemaForm.patchValue({
+      subjectName: 'person-schema',
+      title: 'Person Schema - Draft 2020-12',
+      description: 'A comprehensive schema demonstrating Draft 2020-12 features',
+      version: '1.0.0',
+      compatibilityLevel: 'BACKWARD',
+      enableValidation: true,
+      generateDocumentation: false
+    });
+  }
+
   private handleRouteParameters(): void {
     // Handle loading from registry or other sources via route parameters
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
       if (params['subject'] && params['version']) {
+        console.log('Loading from registry:', params['subject'], params['version']);
         this.loadFromRegistry(params['subject'], parseInt(params['version']));
       } else if (params['template']) {
         this.loadFromTemplate(params['template']);
@@ -526,7 +617,53 @@ export class ModernSchemaEditorComponent implements OnInit, OnDestroy {
     return example;
   }
 
-  // Publishing
+  // Registry Operations
+  openLoadFromRegistry(): void {
+    // For now, navigate to the registry browser
+    this.router.navigate(['/registry/subjects']);
+  }
+
+  testRegistryWorkflow(): void {
+    if (!this.canPublish()) {
+      alert('Please fix validation errors and fill required fields before testing.');
+      return;
+    }
+
+    const formValue = this.schemaForm.value;
+    
+    try {
+      const schema = JSON.parse(this.schemaJSON);
+      
+      // Show a summary of what would be published
+      const summary = `
+TEST WORKFLOW SUMMARY:
+===================
+
+Subject: ${formValue.subjectName}
+Title: ${formValue.title}
+Description: ${formValue.description}
+Version: ${formValue.version}
+Compatibility Level: ${formValue.compatibilityLevel}
+
+Schema Properties: ${Object.keys(schema.properties || {}).length} properties
+Required Fields: ${(schema.required || []).join(', ') || 'None'}
+Schema Type: ${schema.type || 'Not specified'}
+Schema Draft: ${schema.$schema || 'Not specified'}
+
+✅ Schema JSON is valid
+✅ All required metadata provided
+✅ Ready for registry publication
+
+Click "Publish to Registry" to actually register this schema.
+      `;
+      
+      alert(summary);
+      
+    } catch (error) {
+      alert('Invalid JSON schema. Please fix syntax errors first.');
+    }
+  }
+
   canPublish(): boolean {
     return this.schemaForm.valid && this.validationResult?.isValid && this.schemaJSON.trim() !== '';
   }
@@ -536,13 +673,44 @@ export class ModernSchemaEditorComponent implements OnInit, OnDestroy {
 
     const formValue = this.schemaForm.value;
     
-    console.log('Publishing to registry:', {
-      subject: formValue.subjectName,
-      schema: this.schemaJSON,
-      compatibilityLevel: formValue.compatibilityLevel
-    });
+    try {
+      const schema = JSON.parse(this.schemaJSON);
+      
+      // Update schema metadata from form
+      schema.title = formValue.title;
+      schema.description = formValue.description;
+      
+      const publishConfig: PublishConfig = {
+        subject: formValue.subjectName,
+        schema: schema,
+        compatibilityLevel: formValue.compatibilityLevel as CompatibilityLevel,
+        validateCompatibility: formValue.enableValidation,
+        normalize: true
+      };
 
-    this.navigationService.navigateToEvolutionWizard(formValue.subjectName);
+      console.log('Publishing to registry:', publishConfig);
+      
+      // Call the registry service to register the schema
+      this.registryService.registerJsonSchema(publishConfig).subscribe({
+        next: (result: any) => {
+          console.log('Schema registered successfully:', result);
+          // Show success message
+          alert(`Schema registered successfully! Version: ${result.version || 'N/A'}, ID: ${result.id || 'N/A'}`);
+          // Navigate to the subject details page to show the newly registered schema
+          this.router.navigate(['/registry/subject', formValue.subjectName, 'details']);
+        },
+        error: (error: any) => {
+          console.error('Failed to register schema:', error);
+          // Show error message to user
+          const errorMessage = error?.error?.message || error?.message || 'Unknown error occurred';
+          alert(`Failed to register schema: ${errorMessage}`);
+        }
+      });
+      
+    } catch (error) {
+      console.error('Invalid JSON schema:', error);
+      alert('Please fix JSON syntax errors before publishing');
+    }
   }
 
   // Evolution Mode
@@ -576,10 +744,62 @@ export class ModernSchemaEditorComponent implements OnInit, OnDestroy {
 
   // Registry Loading
   private loadFromRegistry(subjectName: string, version: number): void {
+    console.log('Starting loadFromRegistry:', subjectName, version);
+    
     this.registryService.getSchemaVersion(subjectName, version)
-      .subscribe(schemaVersion => {
-        this.globalState.loadFromRegistry(subjectName, schemaVersion);
-        this.selectMode(this.availableModes[1]); // Evolve mode
+      .subscribe({
+        next: (schemaVersion) => {
+          console.log('Received schema version:', schemaVersion);
+          
+          // Load the schema into the global state
+          this.globalState.loadFromRegistry(subjectName, schemaVersion);
+          
+          // Parse the schema string to object
+          let schemaObj: any = {};
+          try {
+            schemaObj = typeof schemaVersion.schema === 'string' 
+              ? JSON.parse(schemaVersion.schema) 
+              : schemaVersion.schema;
+            console.log('Parsed schema object:', schemaObj);
+          } catch (e) {
+            console.error('Failed to parse schema:', e);
+          }
+          
+          // Directly update the form and JSON to ensure immediate display
+          this.schemaForm.patchValue({
+            subjectName: subjectName,
+            title: schemaObj.title || `${subjectName} v${version}`,
+            description: schemaObj.description || '',
+            version: version.toString(),
+            compatibilityLevel: 'BACKWARD'
+          });
+          
+          this.schemaJSON = JSON.stringify(schemaObj, null, 2);
+          console.log('Updated schemaJSON:', this.schemaJSON.substring(0, 100) + '...');
+          
+          // Force immediate mode selection to show editor
+          this.selectedMode = this.availableModes[1]; // Evolve mode
+          console.log('Set selectedMode to:', this.selectedMode?.title);
+          
+          // Force change detection to update the UI immediately
+          this.cdr.detectChanges();
+          
+          // Also force the textarea to update by triggering a focus event
+          setTimeout(() => {
+            this.validateCurrentSchema();
+            this.cdr.detectChanges();
+            
+            // Force UI refresh by triggering textarea update
+            const textarea = document.querySelector('.json-textarea') as HTMLTextAreaElement;
+            if (textarea) {
+              textarea.value = this.schemaJSON;
+              textarea.dispatchEvent(new Event('input'));
+            }
+          }, 100);
+        },
+        error: (error) => {
+          console.error('Failed to load schema from registry:', error);
+        }
       });
   }
 

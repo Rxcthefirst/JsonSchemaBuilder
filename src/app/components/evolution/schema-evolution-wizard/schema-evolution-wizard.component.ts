@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject as RxSubject, forkJoin } from 'rxjs';
+import { Subject as RxSubject, forkJoin, combineLatest } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 import { SchemaRegistryService } from '../../../services/registry/schema-registry.service';
@@ -90,20 +90,22 @@ export class SchemaEvolutionWizardComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.route.params
+    // Handle both route params and query params for subject name
+    combineLatest([
+      this.route.params,
+      this.route.queryParams
+    ])
       .pipe(takeUntil(this.destroy$))
-      .subscribe(params => {
-        this.context.subjectName = params['subjectName'];
+      .subscribe(([params, queryParams]) => {
+        // Try route params first, then query params
+        this.context.subjectName = params['subjectName'] || queryParams['subject'];
         if (this.context.subjectName) {
           this.initialize();
         }
-      });
-
-    this.route.queryParams
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(params => {
-        if (params['fromVersion']) {
-          // Set specific version as base
+        
+        // Handle other query params for evolution context
+        if (queryParams['fromVersion']) {
+          // Handle version-specific evolution
         }
       });
   }

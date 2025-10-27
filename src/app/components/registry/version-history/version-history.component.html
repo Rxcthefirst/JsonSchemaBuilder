@@ -129,7 +129,7 @@
               </div>
 
               <div class="version-actions">
-                <button class="action-btn primary" (click)="viewVersionDetails(version)">
+                <button class="action-btn primary" (click)="viewSchemaInEditor(version)">
                   View Schema
                 </button>
                 <button class="action-btn secondary" (click)="compareWithPrevious(version)"
@@ -197,7 +197,7 @@
             
             <div class="col-actions">
               <div class="table-actions">
-                <button class="mini-btn" (click)="viewVersionDetails(version)">View</button>
+                <button class="mini-btn" (click)="viewSchemaInEditor(version)">View</button>
                 <button class="mini-btn" (click)="compareWithPrevious(version)"
                         *ngIf="version !== versions[versions.length - 1]">Diff</button>
               </div>

@@ -4,6 +4,18 @@
       overflow-y: auto;
     }
 
+// Animation for highlighting requested version
+@keyframes highlightVersion {
+  0% {
+    background-color: #ffeb3b;
+    transform: scale(1.02);
+  }
+  100% {
+    background-color: #e3f2fd;
+    transform: scale(1);
+  }
+}
+
     .details-header {
       margin-bottom: 24px;
     }
@@ -225,6 +237,44 @@
       gap: 8px;
     }
 
+    .requested-version-notice {
+      background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+      border: 2px solid #2196f3;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+
+      .notice-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .notice-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+      }
+
+      .notice-text {
+        flex: 1;
+
+        strong {
+          color: #1976d2;
+          font-size: 1rem;
+        }
+
+        p {
+          margin: 4px 0 0 0;
+          color: #666;
+          font-size: 0.9rem;
+        }
+      }
+
+      .action-btn {
+        flex-shrink: 0;
+      }
+    }
+
     .version-item {
       display: flex;
       justify-content: space-between;
@@ -237,6 +287,13 @@
     .version-item.latest {
       background-color: #e8f5e8;
       border-color: #4caf50;
+    }
+
+    .version-item.requested {
+      background-color: #e3f2fd;
+      border-color: #2196f3;
+      box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+      animation: highlightVersion 1s ease-in-out;
     }
 
     .version-info {

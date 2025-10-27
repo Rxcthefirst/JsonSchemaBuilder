@@ -123,10 +123,26 @@
           </div>
           
           <div class="versions-list">
+            <!-- Requested version notification if not visible -->
+            <div class="requested-version-notice" *ngIf="requestedVersion && !isRequestedVersionVisible()">
+              <div class="notice-content">
+                <span class="notice-icon">🔍</span>
+                <div class="notice-text">
+                  <strong>Looking for version {{ requestedVersion }}?</strong>
+                  <p>Version {{ requestedVersion }} is not in the recent versions shown below.</p>
+                </div>
+                <button class="action-btn primary" (click)="viewVersionHistory()">
+                  View Full History
+                </button>
+              </div>
+            </div>
+
             <div 
               *ngFor="let version of subjectDetail.versions.slice(0, 5); trackBy: trackByVersion"
               class="version-item"
               [class.latest]="version.version === subjectDetail.latestVersion.version"
+              [class.requested]="requestedVersion && version.version === requestedVersion"
+              [attr.data-version]="version.version"
             >
               <div class="version-info">
                 <span class="version-number">v{{ version.version }}</span>

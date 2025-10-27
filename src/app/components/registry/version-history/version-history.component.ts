@@ -190,8 +190,22 @@ export class VersionHistoryComponent implements OnInit, OnDestroy {
     this.router.navigate(['/registry/subject', this.subjectName, 'details']);
   }
 
+  // Load schema into editor for viewing/editing
+  viewSchemaInEditor(version: VersionWithAnalysis): void {
+    this.router.navigate(['/schema-editor'], {
+      queryParams: { 
+        subject: this.subjectName, 
+        version: version.version 
+      }
+    });
+  }
+
+  // View version details/metadata (for table "View" button)
   viewVersionDetails(version: VersionWithAnalysis): void {
-    this.router.navigate(['/registry/subject', this.subjectName, 'version', version.version]);
+    // Navigate to subject details with version as query parameter
+    this.router.navigate(['/registry/subject', this.subjectName, 'details'], {
+      queryParams: { version: version.version }
+    });
   }
 
   compareWithPrevious(version: VersionWithAnalysis): void {

@@ -197,7 +197,11 @@ export class SubjectBrowserComponent implements OnInit, OnDestroy {
 
   evolveSchema(event: Event, subject: SubjectWithMetadata): void {
     event.stopPropagation();
-    this.router.navigate(['/registry/evolve', subject.name]);
+    console.log(`Navigating to evolution wizard for subject: ${subject.name}`);
+    // Navigate to evolution wizard with subject name as query parameter
+    this.router.navigate(['/evolution/wizard'], { 
+      queryParams: { subject: subject.name, mode: 'evolve' } 
+    });
   }
 
   createNewSubject(): void {

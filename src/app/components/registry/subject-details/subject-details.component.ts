@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject as RxSubject, BehaviorSubject, forkJoin } from 'rxjs';
+import { Subject as RxSubject, BehaviorSubject, forkJoin, combineLatest } from 'rxjs';
 import { takeUntil, switchMap } from 'rxjs/operators';
 
 import { SchemaRegistryService } from '../../../services/registry/schema-registry.service';
@@ -37,6 +37,7 @@ export class SubjectDetailsComponent implements OnInit, OnDestroy {
   
   // Component state
   subjectName: string = '';
+  requestedVersion: number | null = null; // Track if user requested a specific version
   subjectDetail: SubjectDetail | null = null;
   loading = false;
   error: string | null = null;
@@ -57,10 +58,15 @@ export class SubjectDetailsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.route.params
+    combineLatest([
+      this.route.params,
+      this.route.queryParams
+    ])
       .pipe(takeUntil(this.destroy$))
-      .subscribe(params => {
+      .subscribe(([params, queryParams]) => {
         this.subjectName = params['subjectName'];
+        this.requestedVersion = queryParams['version'] ? parseInt(queryParams['version']) : null;
+        
         if (this.subjectName) {
           this.loadSubjectDetails();
         }
@@ -112,6 +118,13 @@ export class SubjectDetailsComponent implements OnInit, OnDestroy {
         createdAt: new Date(), // Would come from registry metadata
         updatedAt: new Date()  // Would come from registry metadata
       };
+
+      // Auto-scroll to requested version if specified
+      if (this.requestedVersion) {
+        setTimeout(() => {
+          this.scrollToRequestedVersion();
+        }, 200);
+      }
 
       this.newCompatibilityLevel = compatibility;
       this.canDeleteSubject = true; // Would be based on permissions
@@ -219,7 +232,13 @@ export class SubjectDetailsComponent implements OnInit, OnDestroy {
   viewVersion(version: SchemaVersion): void {
     if (!this.subjectDetail) return;
     
-    this.router.navigate(['/registry/subject', this.subjectDetail.name, 'version', version.version]);
+    // Set the requested version and highlight it
+    this.requestedVersion = version.version;
+    
+    // Scroll to the version
+    setTimeout(() => {
+      this.scrollToRequestedVersion();
+    }, 100);
   }
 
   compareVersions(version: SchemaVersion): void {
@@ -294,5 +313,24 @@ export class SubjectDetailsComponent implements OnInit, OnDestroy {
 
   trackByVersion(index: number, version: SchemaVersion): number {
     return version.version;
+  }
+
+  isRequestedVersionVisible(): boolean {
+    if (!this.requestedVersion || !this.subjectDetail) return true;
+    return this.subjectDetail.versions.slice(0, 5).some(v => v.version === this.requestedVersion);
+  }
+
+  getRequestedVersionInfo(): SchemaVersion | null {
+    if (!this.requestedVersion || !this.subjectDetail) return null;
+    return this.subjectDetail.versions.find(v => v.version === this.requestedVersion) || null;
+  }
+
+  private scrollToRequestedVersion(): void {
+    if (!this.requestedVersion) return;
+    
+    const element = document.querySelector(`[data-version="${this.requestedVersion}"]`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 }
